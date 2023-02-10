@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Union, Iterable, Optional, List, Generator, Tuple
+from typing import Any, Union, Iterable, Optional, List, Generator, Tuple, Callable, Dict
 import itertools
 
 class cdict():
@@ -14,6 +14,9 @@ class cdict():
     @classmethod
     def iter(cls, it: Any) -> cdict:
         return _cdict_sum(it)
+
+    def map(self, fn: Callable[[Any], Any]) -> cdict:
+        return _cdict_map(fn, self)
 
     def __iter__(self):
         raise NotImplementedError("Please override this method")
@@ -61,6 +64,20 @@ class _cdict_sum(cdict):
             return " + ".join([d.__repr_helper__() if isinstance(d, cdict) else str(d) for d in self._items])
         else:
             return "sum(" + str(self._items) + ")"
+
+
+class _cdict_map(cdict):
+    def __init__(self, fn: Callable[[Any], Any], _inner: cdict) -> None:
+        self._inner = _inner
+        self._fn = fn
+
+    def __iter__(self):
+        for x in iter(self._inner):
+            yield self._fn(x)
+
+    def __repr_helper__(self) -> str:
+        return f"map({self._fn}, {self._inner})"
+
 
 class _cdict_product(cdict):
     def __init__(self, _items: List[cdict]) -> None:

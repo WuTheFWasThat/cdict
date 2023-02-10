@@ -14,6 +14,7 @@ It's most easily understood by example!
 from cdict import C
 
 # create very simple values
+# cdicts always represent a list of dictionaries
 a1 = C.dict(a=1, aa=1)
 a2 = C.dict(a=2, aa=4)
 assert list(a1) == [dict(a=1, aa=1)]
@@ -66,6 +67,17 @@ assert list(nested_sweep) == [
     dict(a=1, aa=1, b=1),
     dict(a=2, aa=4, b=2),
 ]
+
+# transform dicts on the fly
+a3 = C.dict(a=3)
+
+def square_a(x):
+    x['aa'] = x['a']**2
+    return x
+
+a3 = a3.map(square_a)
+assert list(a3) == [dict(a=3, aa=9)]
+
 ```
 
 ## Properties
