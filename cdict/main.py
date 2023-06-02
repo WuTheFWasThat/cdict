@@ -1,6 +1,9 @@
 from __future__ import annotations
+import functools
 from typing import Any, Union, Iterable, Optional, List, Generator, Tuple, Callable, Dict
 import itertools
+from collections import defaultdict
+
 
 class cdict():
     @classmethod
@@ -14,9 +17,19 @@ class cdict():
     @classmethod
     def iter(cls, it: Any) -> cdict:
         return _cdict_sum(it)
+    
+    @classmethod
+    def label(cls, label: str, separator: str=".") -> label:
+        return _cdict_label(label, separator)
+
+    def apply(self, fn: Callable[[Any], Any]) -> cdict:
+        return _cdict_apply(fn, self)
 
     def map(self, fn: Callable[[Any], Any]) -> cdict:
-        return _cdict_map(fn, self)
+        @functools.wraps(fn)
+        def apply_fn(x):
+            yield fn(x)
+        return _cdict_apply(apply_fn, self)
 
     def __iter__(self):
         raise NotImplementedError("Please override this method")
@@ -66,17 +79,17 @@ class _cdict_sum(cdict):
             return "sum(" + str(self._items) + ")"
 
 
-class _cdict_map(cdict):
+class _cdict_apply(cdict):
     def __init__(self, fn: Callable[[Any], Any], _inner: cdict) -> None:
         self._inner = _inner
         self._fn = fn
 
     def __iter__(self):
         for x in iter(self._inner):
-            yield self._fn(x)
+            yield from self._fn(x)
 
     def __repr_helper__(self) -> str:
-        return f"map({self._fn}, {self._inner})"
+        return f"apply({self._fn}, {self._inner})"
 
 
 class _cdict_product(cdict):
@@ -87,7 +100,7 @@ class _cdict_product(cdict):
 
     def __iter__(self):
         for ds in itertools.product(*self._items):
-            yield dict(sum((list(d.items()) for d in ds), []))
+            yield dict(_cdict_combining.merge_combining(sum((list(d.items()) for d in ds), [])))
 
     def __repr_helper__(self) -> str:
         return " * ".join([d.__repr_helper__() for d in self._items])
@@ -111,3 +124,38 @@ class _cdict_or(cdict):
 
     def __repr_helper__(self) -> str:
         return " | ".join([d.__repr_helper__() for d in self._items])
+
+
+class _cdict_combining:
+    @classmethod
+    def merge_combining(cls, objs: List[Tuple[str, Any]]) -> List[Tuple[str, Any]]:
+        combining = defaultdict(list)
+        ret = []
+        for k, v in objs:
+            if isinstance(v, _cdict_combining):
+                combining[k].append(v)
+            else:
+                ret.append((k, v))
+        
+        for k, v in combining.items():
+            ret.append((k, functools.reduce(lambda x, y: x + y, v)))
+        
+        return ret
+
+
+class _cdict_label(_cdict_combining):
+    def __init__(self, label: str, separator: str) -> None:
+        self._label = label
+        self._separator = separator
+   
+    def __add__(self, other: Any) -> _cdict_label:
+        return _cdict_label(
+            self._label + self._separator + str(other),
+            other._separator if isinstance(other, _cdict_label) else self._separator
+        )
+
+    def __repr__(self) -> str:
+        return f"label({self._label})"
+    
+    def __str__(self) -> str:
+        return self._label
