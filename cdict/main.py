@@ -1,4 +1,5 @@
 from __future__ import annotations
+import functools
 from typing import Any, Union, Iterable, Optional, List, Generator, Tuple, Callable, Dict
 import itertools
 
@@ -15,8 +16,14 @@ class cdict():
     def iter(cls, it: Any) -> cdict:
         return _cdict_sum(it)
 
+    def apply(self, fn: Callable[[Any], Any]) -> cdict:
+        return _cdict_apply(fn, self)
+
     def map(self, fn: Callable[[Any], Any]) -> cdict:
-        return _cdict_map(fn, self)
+        @functools.wraps(fn)
+        def apply_fn(x):
+            yield fn(x)
+        return _cdict_apply(apply_fn, self)
 
     def __iter__(self):
         raise NotImplementedError("Please override this method")
@@ -66,17 +73,17 @@ class _cdict_sum(cdict):
             return "sum(" + str(self._items) + ")"
 
 
-class _cdict_map(cdict):
+class _cdict_apply(cdict):
     def __init__(self, fn: Callable[[Any], Any], _inner: cdict) -> None:
         self._inner = _inner
         self._fn = fn
 
     def __iter__(self):
         for x in iter(self._inner):
-            yield self._fn(x)
+            yield from self._fn(x)
 
     def __repr_helper__(self) -> str:
-        return f"map({self._fn}, {self._inner})"
+        return f"apply({self._fn}, {self._inner})"
 
 
 class _cdict_product(cdict):
