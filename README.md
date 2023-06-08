@@ -38,9 +38,18 @@ assert list(sweep_a * sweep_b) == [
     dict(a=2, aa=4, b=2),
 ]
 
-# overriding behavior
+# conflicting keys errors by default
+with pytest.raises(ValueError):
+    list(b1 * b2)
+
+# implementing a cdict_combine lets you override that behavior
+class summing_number(int):
+    def cdict_combine(self, other):
+        return summing_number(self + other)
+b1 = C.dict(b=summing_number(1))
+b2 = C.dict(b=summing_number(2))
 assert list(b1 * b2) == [
-    dict(b=2)
+    dict(b=3)
 ]
 
 # also some convenience ways to union

@@ -57,13 +57,9 @@ def test_simple():
         dict(a=5, b=30, nested=dict(a=5, b=30), c=4),
     ])
 
-    c5 = c4 * C.dict(c=4)
-    assert_dicts(c5, [
-        dict(a=5, b=3, nested=dict(a=5, b=3), c=4),
-        dict(a=5, b=3, nested=dict(a=5, b=30), c=4),
-        dict(a=5, b=30, nested=dict(a=5, b=3), c=4),
-        dict(a=5, b=30, nested=dict(a=5, b=30), c=4),
-    ])
+    with pytest.raises(ValueError):
+        c5 = c4 * C.dict(c=4)
+        list(c5)
 
     # with an iterator, can still iterate twice
     c6 = C.dict(a=C.iter(range(5, 7)), b=3)
@@ -80,18 +76,6 @@ def test_simple():
     c7 = C.dict(a=C.dict(a1=5, a2=6) + C.dict(a1=6, a2=5)) * C.dict(b=3)
     assert_dicts(c7, [dict(a=dict(a1=5, a2=6), b=3), dict(a=dict(a1=6, a2=5), b=3)])
 
-    c7 = c4 + c5
-    assert_dicts(c7, [
-        dict(a=5, b=3, nested=dict(a=5, b=3), c=4),
-        dict(a=5, b=3, nested=dict(a=5, b=30), c=4),
-        dict(a=5, b=30, nested=dict(a=5, b=3), c=4),
-        dict(a=5, b=30, nested=dict(a=5, b=30), c=4),
-        dict(a=5, b=3, nested=dict(a=5, b=3), c=4),
-        dict(a=5, b=3, nested=dict(a=5, b=30), c=4),
-        dict(a=5, b=30, nested=dict(a=5, b=3), c=4),
-        dict(a=5, b=30, nested=dict(a=5, b=30), c=4),
-    ])
-
     c8 = C.dict(a=C.iter(range(2))) * C.dict(b=C.iter(range(2)))
     assert_dicts(c8, [
         dict(a=0, b=0),
@@ -103,9 +87,32 @@ def test_simple():
 def test_overwriting():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
+    with pytest.raises(ValueError):
+        assert_dicts(c0 * c1, [
+            dict(a=6, b=3, c=4),
+        ])
+
+    class summing_number(int):
+        def cdict_combine(self, other):
+            return summing_number(self + other)
+
+    c0 = C.dict(a=summing_number(5), b=summing_number(3))
+    c1 = C.dict(a=summing_number(6), c=summing_number(4))
     assert_dicts(c0 * c1, [
-        dict(a=6, b=3, c=4),
+        dict(a=11, b=3, c=4),
     ])
+
+    class overriding_number(int):
+        def cdict_combine(self, other):
+            return overriding_number(other)
+
+    c0 = C.dict(a=overriding_number(5), b=overriding_number(3))
+    c1 = C.dict(a=overriding_number(6), c=overriding_number(4))
+    c2 = C.dict(a=overriding_number(7), d=overriding_number(5))
+    assert_dicts(c0 * c1 * c2, [
+        dict(a=7, b=3, c=4, d=5),
+    ])
+
 
 def test_or():
     c0 = C.dict(a=5, b=3)
@@ -131,7 +138,7 @@ def test_or():
     with pytest.raises(ValueError):
         c0 = C.dict(a=C.list(1, 2, 3))
         c1 = C.dict(b=C.list(1, 2))
-        list(iter(c0 | c1))
+        list(c0 | c1)
 
 
 def test_distributive():

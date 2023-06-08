@@ -94,7 +94,17 @@ class _cdict_product(cdict):
 
     def __iter__(self):
         for ds in itertools.product(*self._items):
-            yield dict(sum((list(d.items()) for d in ds), []))
+            res = {}
+            for d in ds:
+                for k, v in d.items():
+                    if k in res:
+                        if hasattr(res[k], "cdict_combine"):
+                            res[k] = res[k].cdict_combine(v)
+                        else:
+                            raise ValueError(f"Cannot combine {res[k]} and {v}")
+                    else:
+                        res[k] = v
+            yield res
 
     def __repr_helper__(self) -> str:
         return " * ".join([d.__repr_helper__() for d in self._items])
