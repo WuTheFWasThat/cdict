@@ -77,13 +77,12 @@ def square_a(x):
 
 a3 = a3.map(square_a)
 assert list(a3) == [dict(a=3, aa=9)]
-
 ```
 
 ## Properties
 
 - `*` `+` and `|` are associative
-- `*` distributes over `+`
+- `*` is left-distributive over `+`, that is `a * c + b * c = (a + b) * c`.  It is right-distributive if ignoring order of the resulting items.
 - `+`  is commutative if you don’t care about order of the resulting items
-- `*` is commutative if you don’t care about order of the resulting items and never overwrite keys
-- `|` is commutative if you never overwrite keys
+- `|` is commutative if key-combination is commutative
+- `*` is commutative if you don’t care about order of the resulting items and key-combination is commutative

@@ -10,6 +10,26 @@ def assert_dicts(c, expected):
     for i, (d1, d2) in enumerate(zip(dicts, expected)):
         assert d1 == d2, f"Mismatch at {i}, got {d1} instead of {d2}"
 
+def assert_equivalent(c1, c2):
+    print(c1, c2)
+    dicts1 = list(iter(c1))
+    dicts2 = list(iter(c2))
+    assert len(dicts1) == len(dicts2), f"Expected equal lengths, got {len(dicts2)} instead of {len(dicts1)}"
+    for i, (d1, d2) in enumerate(zip(dicts1, dicts2)):
+        assert d1 == d2, f"Mismatch at {i}, got {d1} instead of {d2}"
+
+def assert_equivalent_sets(c1, c2):
+    print(c1, c2)
+    dicts1 = list(iter(c1))
+    dicts2 = list(iter(c2))
+    assert len(dicts1) == len(dicts2), f"Expected equal lengths, got {len(dicts2)} instead of {len(dicts1)}"
+    for d1 in dicts1:
+        found = 0
+        for d2 in dicts2:
+            if d1 == d2:
+                found += 1
+        assert found == 1
+
 
 def test_simple():
     c0 = C.dict(a=5, b=3)
@@ -114,7 +134,23 @@ def test_or():
         list(iter(c0 | c1))
 
 
+def test_distributive():
+    a0 = C.dict(a=C.list(1,2))
+    a1 = C.dict(a=C.list(3,4))
+    b = C.dict(b=C.list(1,2))
+    assert_equivalent(a0 * b + a1 * b, (a0 + a1) * b)
+    assert_equivalent_sets(b * a0 + b * a1, b * (a0 + a1))
+
+
+def test_commutative_mult():
+    a0 = C.dict(a=C.list(1,2))
+    a1 = C.dict(b=C.list(3,4))
+    assert_equivalent_sets(a0 * a1, a1 * a0)
+
+
 if __name__ == "__main__":
     test_simple()
     test_overwriting()
     test_or()
+    test_distributive()
+    test_commutative_mult()
