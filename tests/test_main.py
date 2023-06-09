@@ -1,5 +1,7 @@
 import time
 import pytest
+import re
+import os
 
 from cdict import C
 
@@ -155,9 +157,22 @@ def test_commutative_mult():
     assert_equivalent_sets(a0 * a1, a1 * a0)
 
 
+def test_readme_code():
+    readme_file = os.path.join(os.path.dirname(__file__), '..', 'README.md')
+    with open(readme_file) as f:
+        text = f.read()
+    m = re.search('```(.+?)```', text, flags=re.DOTALL)
+    assert m
+    code = m.group(1)
+    assert code.startswith('python')
+    code = code[6:].strip()
+    exec(code, globals(), globals())
+
+
 if __name__ == "__main__":
     test_simple()
     test_overwriting()
     test_or()
     test_distributive()
     test_commutative_mult()
+    test_readme_code()
