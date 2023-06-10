@@ -97,5 +97,5 @@ assert list(diag_sweep) == [
 - `*` `+` and `|` are associative
 - `*` is left-distributive over `+`, that is `a * c + b * c = (a + b) * c`.  It is right-distributive if ignoring order of the resulting items.
 - `+`  is commutative if you don’t care about order of the resulting items
-- `|` is commutative if key-combination is commutative
-- `*` is commutative if you don’t care about order of the resulting items and key-combination is commutative
+- `|` is commutative if cdict_combine is commutative
+- `*` is commutative if you don’t care about order of the resulting items and cdict_combine is commutative
