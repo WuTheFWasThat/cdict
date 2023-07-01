@@ -13,6 +13,10 @@ class cdict():
         return cls.iter(list(args))
 
     @classmethod
+    def sum(cls, args: Iterable) -> cdict:
+        return sum(args, cls.list())
+
+    @classmethod
     def iter(cls, it: Any) -> cdict:
         return _cdict_sum(it)
 
