@@ -53,9 +53,25 @@ class cdict():
     def __len__(self) -> int:
         return len(list(iter(self)))
 
+class _cdict_combinable_dict(dict):
+    def cdict_combine(self, other):
+        res = {}
+        for d in [self, other]:
+            for k, v in d.items():
+                if k in res:
+                    if hasattr(res[k], "cdict_combine"):
+                        res[k] = res[k].cdict_combine(v)
+                    else:
+                        raise ValueError(f"Cannot combine {res[k]} and {v}")
+                else:
+                    res[k] = v
+        return _cdict_combinable_dict(res)
+
+
 class _cdict_dict(cdict):
-    def __init__(self, _item: dict) -> None:
+    def __init__(self, _item: dict, overridable: bool = True) -> None:
         self._item = _item
+        self._overridable = overridable
 
     def __iter__(self):
         # combinatorially yield
@@ -66,7 +82,8 @@ class _cdict_dict(cdict):
             v = d[k]
             viters.append(iter(v) if isinstance(v, cdict) else [v])
         for vs in itertools.product(*viters):
-            yield {k: v for k, v in zip(ks, vs)}
+            res = {k: v for k, v in zip(ks, vs)}
+            yield _cdict_combinable_dict(res) if self._overridable else res
 
     def __repr_helper__(self) -> str:
         return ", ".join([f"{k}={v}" for k, v in self._item.items()])
@@ -102,6 +119,19 @@ class _cdict_apply(cdict):
         return f"apply({self._fn}, {self._inner})"
 
 
+def _combine_dicts(ds):
+    res = {}
+    for d in ds:
+        for k, v in d.items():
+            if k in res:
+                if hasattr(res[k], "cdict_combine"):
+                    res[k] = res[k].cdict_combine(v)
+                else:
+                    raise ValueError(f"Cannot combine {res[k]} and {v}")
+            else:
+                res[k] = v
+    return res
+
 class _cdict_product(cdict):
     def __init__(self, _items: List[cdict]) -> None:
         for c in _items:
@@ -110,17 +140,7 @@ class _cdict_product(cdict):
 
     def __iter__(self):
         for ds in itertools.product(*self._items):
-            res = {}
-            for d in ds:
-                for k, v in d.items():
-                    if k in res:
-                        if hasattr(res[k], "cdict_combine"):
-                            res[k] = res[k].cdict_combine(v)
-                        else:
-                            raise ValueError(f"Cannot combine {res[k]} and {v}")
-                    else:
-                        res[k] = v
-            yield res
+            yield _combine_dicts(ds)
 
     def __repr_helper__(self) -> str:
         return " * ".join([d.__repr_helper__() for d in self._items])
@@ -140,7 +160,7 @@ class _cdict_or(cdict):
 
     def __iter__(self):
         for ds in safe_zip(*self._items):
-            yield dict(sum((list(d.items()) for d in ds), []))
+            yield _combine_dicts(ds)
 
     def __repr_helper__(self) -> str:
         return " | ".join([d.__repr_helper__() for d in self._items])

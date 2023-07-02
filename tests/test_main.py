@@ -108,6 +108,13 @@ def test_nested_times():
         dict(a=dict(a=2, b=2)),
     ])
 
+    c0 = C.dict(a=C.dict(a=C.list(1, 2)))
+    c1 = C.dict(a=C.dict(a=C.list(3, 4)))
+
+    with pytest.raises(ValueError):
+        list(c0 * c1)
+
+
 def test_overwriting():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
@@ -126,6 +133,10 @@ def test_overwriting():
         dict(a=11, b=3, c=4),
     ])
 
+    assert_dicts(c0 | c1, [
+        dict(a=11, b=3, c=4),
+    ])
+
     class overriding_number(int):
         def cdict_combine(self, other):
             return overriding_number(other)
@@ -141,9 +152,10 @@ def test_overwriting():
 def test_or():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
-    assert_dicts(c0 | c1, [
-        dict(a=6, b=3, c=4),
-    ])
+    with pytest.raises(ValueError):
+        assert_dicts(c0 | c1, [
+            dict(a=6, b=3, c=4),
+        ])
 
     c0 = C.dict(a=C.list(5, 6), b=3)
     c1 = C.dict(c=C.list(4, 3))
@@ -152,7 +164,11 @@ def test_or():
         dict(a=6, b=3, c=3),
     ])
 
-    c0 = C.dict(a=C.list(5, 6), b=3)
+    class overriding_number(int):
+        def cdict_combine(self, other):
+            return overriding_number(other)
+
+    c0 = C.dict(a=C.list(overriding_number(5), overriding_number(6)), b=3)
     c1 = C.dict(a=6, c=C.list(4, 3))
     assert_dicts(c0 | c1, [
         dict(a=6, b=3, c=4),
