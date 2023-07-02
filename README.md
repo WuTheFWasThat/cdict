@@ -114,8 +114,13 @@ with pytest.raises(ValueError):
 
 ## Properties
 
-- `*` `+` and `|` are associative
-- `*` is left-distributive over `+`, that is `a * c + b * c = (a + b) * c`.  It is right-distributive if ignoring order of the resulting items.
-- `+`  is commutative if you don’t care about order of the resulting items
-- `|` is commutative if cdict_combine is commutative
-- `*` is commutative if you don’t care about order of the resulting items and cdict_combine is commutative
+- `+` is associative.
+- `*` and `|` are associative\*
+- `*` is left-distributive and right-distributive^ over `+`
+- `+`  is commutative^
+- `|` is commutative\*
+- `*` is commutative\*^
+
+\*:  if either cdict_combine has the same property or there are no conflicting keys
+
+^:  if ignoring order of the resulting items
