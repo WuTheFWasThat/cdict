@@ -57,19 +57,22 @@ class cdict():
     def __len__(self) -> int:
         return len(list(iter(self)))
 
+def _combine_dicts(ds):
+    res = {}
+    for d in ds:
+        for k, v in d.items():
+            if k in res:
+                if hasattr(res[k], "cdict_combine"):
+                    res[k] = res[k].cdict_combine(v)
+                else:
+                    raise ValueError(f"Cannot combine key {k}: {res[k]} and {v}")
+            else:
+                res[k] = v
+    return res
+
 class _cdict_combinable_dict(dict):
     def cdict_combine(self, other):
-        res = {}
-        for d in [self, other]:
-            for k, v in d.items():
-                if k in res:
-                    if hasattr(res[k], "cdict_combine"):
-                        res[k] = res[k].cdict_combine(v)
-                    else:
-                        raise ValueError(f"Cannot combine {res[k]} and {v}")
-                else:
-                    res[k] = v
-        return _cdict_combinable_dict(res)
+        return _cdict_combinable_dict(_combine_dicts([self, other]))
 
 
 class _cdict_dict(cdict):
@@ -122,19 +125,6 @@ class _cdict_apply(cdict):
     def __repr_helper__(self) -> str:
         return f"apply({self._fn}, {self._inner})"
 
-
-def _combine_dicts(ds):
-    res = {}
-    for d in ds:
-        for k, v in d.items():
-            if k in res:
-                if hasattr(res[k], "cdict_combine"):
-                    res[k] = res[k].cdict_combine(v)
-                else:
-                    raise ValueError(f"Cannot combine {res[k]} and {v}")
-            else:
-                res[k] = v
-    return res
 
 class _cdict_product(cdict):
     def __init__(self, _items: List[cdict]) -> None:
