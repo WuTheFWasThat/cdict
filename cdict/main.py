@@ -9,6 +9,10 @@ class cdict():
         return _cdict_dict(dict(**kwargs))
 
     @classmethod
+    def finaldict(cls, **kwargs: Any) -> cdict:
+        return _cdict_dict(dict(**kwargs), overridable=False)
+
+    @classmethod
     def list(cls, *args: Any) -> cdict:
         return cls.iter(list(args))
 

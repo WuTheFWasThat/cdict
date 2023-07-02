@@ -108,11 +108,49 @@ def test_nested_times():
         dict(a=dict(a=2, b=2)),
     ])
 
+    # normal dict can't get overridden
+    c0 = C.dict(a=dict(a=1)) + C.dict(a=dict(a=2))
+    assert_dicts(c0, [dict(a=dict(a=1)), dict(a=dict(a=2))])
+    c1 = C.dict(a=C.dict(b=C.list(1, 2)))
+    assert_dicts(c1, [dict(a=dict(b=1)), dict(a=dict(b=2))])
+    with pytest.raises(ValueError):
+        list(c0 * c1)
+
+    # finaldict can't get overridden
+    c0 = C.dict(a=C.finaldict(a=C.list(1, 2)))
+    assert_dicts(c0, [dict(a=dict(a=1)), dict(a=dict(a=2))])
+    c1 = C.dict(a=C.dict(b=C.list(1, 2)))
+    assert_dicts(c1, [dict(a=dict(b=1)), dict(a=dict(b=2))])
+    with pytest.raises(ValueError):
+        list(c0 * c1)
+
     c0 = C.dict(a=C.dict(a=C.list(1, 2)))
     c1 = C.dict(a=C.dict(a=C.list(3, 4)))
 
     with pytest.raises(ValueError):
         list(c0 * c1)
+
+    c0 = C.dict(a=C.dict(a=C.finaldict(a=1)))
+    assert_dicts(c0, [dict(a=dict(a=dict(a=1)))])
+    c1 = C.dict(a=C.dict(b=C.finaldict(a=1)))
+    assert_dicts(c1, [dict(a=dict(b=dict(a=1)))])
+
+    assert_dicts(c0 * c1, [
+        dict(a=dict(a=dict(a=1), b=dict(a=1))),
+    ])
+
+    # finaldict can't get overridden
+    c0 = C.dict(a=C.finaldict(a=C.list(1, 2)))
+    assert_dicts(c0, [dict(a=dict(a=1)), dict(a=dict(a=2))])
+    c1 = C.dict(b=C.finaldict(b=C.list(1, 2)))
+    assert_dicts(c1, [dict(b=dict(b=1)), dict(b=dict(b=2))])
+    assert_dicts(c0 * c1, [
+        dict(a=dict(a=1), b=dict(b=1)),
+        dict(a=dict(a=1), b=dict(b=2)),
+        dict(a=dict(a=2), b=dict(b=1)),
+        dict(a=dict(a=2), b=dict(b=2)),
+    ])
+
 
 
 def test_overwriting():

@@ -90,6 +90,26 @@ assert list(diag_sweep) == [
     dict(a=1, aa=1, b=1),
     dict(a=2, aa=4, b=2),
 ]
+
+# you can multiply within nesting (because cdict results implement cdict_combine)
+nested_sweep = (
+    C.dict(nested=C.dict(a=C.list(1, 2))) *
+    C.dict(nested=C.dict(b=C.list(1, 2)))
+)
+assert list(nested_sweep) == [
+    dict(nested=dict(a=1, b=1)),
+    dict(nested=dict(a=1, b=2)),
+    dict(nested=dict(a=2, b=1)),
+    dict(nested=dict(a=2, b=2)),
+]
+
+# to change that behavior, use finaldict
+nested_sweep = (
+    C.dict(nested=C.finaldict(a=C.list(1, 2))) *
+    C.dict(nested=C.dict(b=C.list(1, 2)))
+)
+with pytest.raises(ValueError):
+    list(nested_sweep)
 ```
 
 ## Properties
