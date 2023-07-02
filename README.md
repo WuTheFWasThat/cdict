@@ -27,12 +27,17 @@ assert list(sweep_a) == [
     dict(a=1, aa=1),
     dict(a=2, aa=4)
 ]
+# convenience method
+sweep_a = C.sum(C.dict(a=a, aa=a*a) for a in [1,2])
+assert list(sweep_a) == [
+    dict(a=1, aa=1),
+    dict(a=2, aa=4)
+]
 
 # "multiply" cdicts by combinatorially combining all possibilities
-b1 = C.dict(b=1)
-b2 = C.dict(b=2)
-sweep_b = b1 + b2
-assert list(sweep_a * sweep_b) == [
+sweep_b = C.dict(b=1) + C.dict(b=2)
+sweep_ab = sweep_a * sweep_b
+assert list(sweep_ab) == [
     dict(a=1, aa=1, b=1),
     dict(a=1, aa=1, b=2),
     dict(a=2, aa=4, b=1),
@@ -57,6 +62,15 @@ assert list(sweep_concise) == [
     dict(a=2, b=2),
 ]
 
+# avoid instantiating lists if needed
+sweep_concise = C.dict(a=C.iter(range(1, 3)), b=C.iter(range(1, 3)))
+assert list(sweep_concise) == [
+    dict(a=1, b=1),
+    dict(a=1, b=2),
+    dict(a=2, b=1),
+    dict(a=2, b=2),
+]
+
 # and transform
 def square_a(x):
     x['aa'] = x['a']**2
@@ -70,18 +84,42 @@ assert list(sweep_concise) == [
     dict(a=2, aa=4, b=2),
 ]
 
+def add_seeds(x):
+    for i in range(2):
+        yield dict(**x, seed=x['a'] * 100 + x['b'] * 10 + i)
+
+sweep_concise = sweep_concise.apply(add_seeds)
+print(list(sweep_concise))
+assert list(sweep_concise) == [
+    dict(a=1, aa=1, b=1, seed=110),
+    dict(a=1, aa=1, b=1, seed=111),
+    dict(a=1, aa=1, b=2, seed=120),
+    dict(a=1, aa=1, b=2, seed=121),
+    dict(a=2, aa=4, b=1, seed=210),
+    dict(a=2, aa=4, b=1, seed=211),
+    dict(a=2, aa=4, b=2, seed=220),
+    dict(a=2, aa=4, b=2, seed=221),
+]
+
+
 # conflicting keys errors by default
+s1 = C.sum(C.dict(a=a, label=f"a{a}") for a in [1, 2])
+s2 = C.sum(C.dict(b=b, label=f"b{b}") for b in [1, 2])
 with pytest.raises(ValueError):
-    list(b1 * b2)
+    list(s1 * s2)
 
 # implementing a cdict_combine lets you override that behavior
-class summing_number(int):
+class label(str):
     def cdict_combine(self, other):
-        return summing_number(self + other)
-b1 = C.dict(b=summing_number(1))
-b2 = C.dict(b=summing_number(2))
-assert list(b1 * b2) == [
-    dict(b=3)
+        return label(self + "." + other)
+
+s1 = C.sum(C.dict(a=a, label=label(f"a{a}")) for a in [1, 2])
+s2 = C.sum(C.dict(b=b, label=label(f"b{b}")) for b in [1, 2])
+assert list(s1 * s2) == [
+    dict(a=1, b=1, label="a1.b1"),
+    dict(a=1, b=2, label="a1.b2"),
+    dict(a=2, b=1, label="a2.b1"),
+    dict(a=2, b=2, label="a2.b2"),
 ]
 
 # zipping of equal length things
