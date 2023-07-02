@@ -64,12 +64,11 @@ assert list(sweep_concise) == [
 
 # avoid instantiating lists if needed
 sweep_concise = C.dict(a=C.iter(range(1, 3)), b=C.iter(range(1, 3)))
-assert list(sweep_concise) == [
-    dict(a=1, b=1),
-    dict(a=1, b=2),
-    dict(a=2, b=1),
-    dict(a=2, b=2),
-]
+it = iter(sweep_concise)
+assert next(it) == dict(a=1, b=1)
+assert next(it) == dict(a=1, b=2)
+assert next(it) == dict(a=2, b=1)
+assert next(it) == dict(a=2, b=2)
 
 # and transform
 def square_a(x):
@@ -89,7 +88,6 @@ def add_seeds(x):
         yield dict(**x, seed=x['a'] * 100 + x['b'] * 10 + i)
 
 sweep_concise = sweep_concise.apply(add_seeds)
-print(list(sweep_concise))
 assert list(sweep_concise) == [
     dict(a=1, aa=1, b=1, seed=110),
     dict(a=1, aa=1, b=1, seed=111),
@@ -141,13 +139,24 @@ assert list(nested_sweep) == [
     dict(nested=dict(a=2, b=2)),
 ]
 
-# to change that behavior, use finaldict
+# to change that behavior, use finaldict (yields normal dicts that don't implement cdict_combine)
 nested_sweep = (
     C.dict(nested=C.finaldict(a=C.list(1, 2))) *
     C.dict(nested=C.dict(b=C.list(1, 2)))
 )
 with pytest.raises(ValueError):
     list(nested_sweep)
+
+nested_sweep = (
+    C.dict(a=C.finaldict(value=C.list(1, 2))) *
+    C.dict(b=C.finaldict(value=C.list(1, 2)))
+)
+assert list(nested_sweep) == [
+    dict(a=dict(value=1), b=dict(value=1)),
+    dict(a=dict(value=1), b=dict(value=2)),
+    dict(a=dict(value=2), b=dict(value=1)),
+    dict(a=dict(value=2), b=dict(value=2)),
+]
 ```
 
 ## Properties
@@ -162,3 +171,11 @@ with pytest.raises(ValueError):
 \*:  if either cdict_combine has the same property or there are no conflicting keys
 
 ^:  if ignoring order of the resulting items
+
+## Tests
+
+`pytest tests`
+
+## Acknowledgements
+
+This library was strongly inspired by another tiny library written by Paul Christiano and Daniel Ziegler
