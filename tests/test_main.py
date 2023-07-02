@@ -4,6 +4,8 @@ import re
 import os
 
 from cdict import C
+import mypy.api
+
 
 def assert_dicts(c, expected):
     print(c)
@@ -245,6 +247,21 @@ def test_readme_code():
     exec(code, globals(), globals())
 
 
+def test_types():
+    files = []
+    for dirpath, dirnames, filenames in os.walk(
+        os.path.join(os.path.dirname(__file__), '..', 'cdict'),
+    ):
+        for filename in filenames:
+            if filename.endswith('.py'):
+                files.append(os.path.join(dirpath, filename))
+    stdout, stderr, _ = mypy.api.run(['--strict'] + files)
+    if 'Success: no issues found' not in stdout:
+        print("MyPy stdout:\n", stdout)
+        print("MyPy stderr:\n", stderr)
+        raise AssertionError("MyPy found type errors")
+
+
 if __name__ == "__main__":
     test_multilist()
     test_simple()
@@ -254,3 +271,4 @@ if __name__ == "__main__":
     test_distributive()
     test_commutative_mult()
     test_readme_code()
+    test_types()

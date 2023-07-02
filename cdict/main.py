@@ -1,7 +1,9 @@
 from __future__ import annotations
 import functools
-from typing import Any, Union, Iterable, Optional, List, Generator, Tuple, Callable, Dict
+from typing import Any, Union, Iterable, Optional, Generator, Tuple, Callable
 import itertools
+
+AnyDict = dict[Any, Any]
 
 class cdict():
     @classmethod
@@ -17,7 +19,7 @@ class cdict():
         return cls.iter(list(args))
 
     @classmethod
-    def sum(cls, args: Iterable) -> cdict:
+    def sum(cls, args: Iterable[cdict]) -> cdict:
         return sum(args, cls.list())
 
     @classmethod
@@ -29,11 +31,11 @@ class cdict():
 
     def map(self, fn: Callable[[Any], Any]) -> cdict:
         @functools.wraps(fn)
-        def apply_fn(x):
+        def apply_fn(x: Any) -> Any:
             yield fn(x)
         return _cdict_apply(apply_fn, self)
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         raise NotImplementedError("Please override this method")
 
     def __add__(self, other: cdict) -> cdict:
@@ -57,8 +59,9 @@ class cdict():
     def __len__(self) -> int:
         return len(list(iter(self)))
 
-def _combine_dicts(ds):
-    res = {}
+
+def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
+    res: AnyDict = {}
     for d in ds:
         for k, v in d.items():
             if k in res:
@@ -70,17 +73,18 @@ def _combine_dicts(ds):
                 res[k] = v
     return res
 
-class _cdict_combinable_dict(dict):
-    def cdict_combine(self, other):
+
+class _cdict_combinable_dict(AnyDict):
+    def cdict_combine(self, other: AnyDict) -> _cdict_combinable_dict:
         return _cdict_combinable_dict(_combine_dicts([self, other]))
 
 
 class _cdict_dict(cdict):
-    def __init__(self, _item: dict, overridable: bool = True) -> None:
+    def __init__(self, _item: AnyDict, overridable: bool = True) -> None:
         self._item = _item
         self._overridable = overridable
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         # combinatorially yield
         d = self._item
         ks = list(d.keys())
@@ -95,11 +99,12 @@ class _cdict_dict(cdict):
     def __repr_helper__(self) -> str:
         return ", ".join([f"{k}={v}" for k, v in self._item.items()])
 
+
 class _cdict_sum(cdict):
-    def __init__(self, _items: Iterable) -> None:
+    def __init__(self, _items: Iterable[Any]) -> None:
         self._items = _items
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         for d in iter(self._items):
             if isinstance(d, cdict):
                 yield from d
@@ -118,7 +123,7 @@ class _cdict_apply(cdict):
         self._inner = _inner
         self._fn = fn
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         for x in iter(self._inner):
             yield from self._fn(x)
 
@@ -127,12 +132,12 @@ class _cdict_apply(cdict):
 
 
 class _cdict_product(cdict):
-    def __init__(self, _items: List[cdict]) -> None:
+    def __init__(self, _items: list[cdict]) -> None:
         for c in _items:
             assert isinstance(c, cdict), "Cannot multiply"
         self._items = _items
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         for ds in itertools.product(*self._items):
             yield _combine_dicts(ds)
 
@@ -140,7 +145,7 @@ class _cdict_product(cdict):
         return " * ".join([d.__repr_helper__() for d in self._items])
 
 
-def safe_zip(*iterables: Iterable) -> Generator[Tuple[Any], None, None]:
+def safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
     sentinel = object()
     for tup in itertools.zip_longest(*iterables, fillvalue=sentinel):
         if sentinel in tup:
@@ -149,10 +154,10 @@ def safe_zip(*iterables: Iterable) -> Generator[Tuple[Any], None, None]:
 
 
 class _cdict_or(cdict):
-    def __init__(self, _items: List[cdict]) -> None:
+    def __init__(self, _items: list[cdict]) -> None:
         self._items = _items
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         for ds in safe_zip(*self._items):
             yield _combine_dicts(ds)
 
