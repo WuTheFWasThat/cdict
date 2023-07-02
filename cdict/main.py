@@ -6,7 +6,7 @@ import itertools
 class cdict():
     @classmethod
     def dict(cls, **kwargs: Any) -> cdict:
-        return _cdict_sum([dict(**kwargs)])
+        return _cdict_dict(dict(**kwargs))
 
     @classmethod
     def list(cls, *args: Any) -> cdict:
@@ -38,6 +38,9 @@ class cdict():
     def __mul__(self, other: cdict) -> cdict:
         return _cdict_product([self, other])
 
+    def cdict_combine(self, other: cdict) -> cdict:
+        return _cdict_product([self, other])
+
     def __or__(self, other: cdict) -> cdict:
         return _cdict_or([self, other])
 
@@ -50,6 +53,24 @@ class cdict():
     def __len__(self) -> int:
         return len(list(iter(self)))
 
+class _cdict_dict(cdict):
+    def __init__(self, _item: dict) -> None:
+        self._item = _item
+
+    def __iter__(self):
+        # combinatorially yield
+        d = self._item
+        ks = list(d.keys())
+        viters = []
+        for k in ks:
+            v = d[k]
+            viters.append(iter(v) if isinstance(v, cdict) else [v])
+        for vs in itertools.product(*viters):
+            yield {k: v for k, v in zip(ks, vs)}
+
+    def __repr_helper__(self) -> str:
+        return ", ".join([f"{k}={v}" for k, v in self._item.items()])
+
 class _cdict_sum(cdict):
     def __init__(self, _items: Iterable) -> None:
         self._items = _items
@@ -58,15 +79,6 @@ class _cdict_sum(cdict):
         for d in iter(self._items):
             if isinstance(d, cdict):
                 yield from d
-            elif isinstance(d, dict):
-                # if values of dict are cdicts, need to combinatorially yield
-                ks = list(d.keys())
-                viters = []
-                for k in ks:
-                    v = d[k]
-                    viters.append(iter(v) if isinstance(v, cdict) else [v])
-                for vs in itertools.product(*viters):
-                    yield {k: v for k, v in zip(ks, vs)}
             else:
                 yield d
 

@@ -33,6 +33,15 @@ def assert_equivalent_sets(c1, c2):
         assert found == 1
 
 
+def test_multilist():
+    c = C.dict(a=C.list(1, 2), b=C.list(1, 2))
+    assert_dicts(c, [
+        dict(a=1, b=1),
+        dict(a=1, b=2),
+        dict(a=2, b=1),
+        dict(a=2, b=2),
+    ])
+
 def test_simple():
     c0 = C.dict(a=5, b=3)
     assert_dicts(c0, [dict(a=5, b=3)])
@@ -84,6 +93,19 @@ def test_simple():
         dict(a=0, b=1),
         dict(a=1, b=0),
         dict(a=1, b=1),
+    ])
+
+def test_nested_times():
+    c0 = C.dict(a=C.dict(a=C.list(1, 2)))
+    assert_dicts(c0, [dict(a=dict(a=1)), dict(a=dict(a=2))])
+    c1 = C.dict(a=C.dict(b=C.list(1, 2)))
+    assert_dicts(c1, [dict(a=dict(b=1)), dict(a=dict(b=2))])
+
+    assert_dicts(c0 * c1, [
+        dict(a=dict(a=1, b=1)),
+        dict(a=dict(a=1, b=2)),
+        dict(a=dict(a=2, b=1)),
+        dict(a=dict(a=2, b=2)),
     ])
 
 def test_overwriting():
@@ -170,8 +192,10 @@ def test_readme_code():
 
 
 if __name__ == "__main__":
+    test_multilist()
     test_simple()
     test_overwriting()
+    test_nested_times()
     test_or()
     test_distributive()
     test_commutative_mult()
