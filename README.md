@@ -2,6 +2,8 @@
 
 This is a small library for creating lists of dictionaries combinatorially, for config/hyperparameter management.
 
+The two main operations are `+` which concatenates experiments, and `*` which does an outer product/grid sweep.
+
 ## Installation
 
 `pip install cdict`
@@ -162,15 +164,15 @@ assert list(nested_sweep) == [
 ## Properties
 
 - `+` is associative.
-- `*` and `|` are associative\*
-- `*` is left-distributive and right-distributive^ over `+`
-- `+`  is commutative^
-- `|` is commutative\*
-- `*` is commutative\*^
+- `*` and `|` are associative if 1
+- `*` is left-distributive over `+`, and right-distributive if 2
+- `+`  is commutative if 2
+- `|` is commutative if 1
+- `*` is commutative if 1 and 2
 
-\*:  if either cdict_combine has the same property or there are no conflicting keys
+1:  if either cdict_combine has the same property or there are no conflicting keys
 
-^:  if ignoring order of the resulting items
+2:  if ignoring order of the resulting items
 
 ## Tests
 
