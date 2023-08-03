@@ -108,7 +108,7 @@ class _cdict_sum(cdict):
 
     def __repr_helper__(self) -> str:
         if isinstance(self._items, list):
-            return " + ".join([d.__repr_helper__() if isinstance(d, cdict) else str(d) for d in self._items])
+            return " + ".join([str(d) for d in self._items])
         else:
             return "sum(" + str(self._items) + ")"
 
@@ -137,7 +137,7 @@ class _cdict_product(cdict):
             yield _combine_dicts(ds)
 
     def __repr_helper__(self) -> str:
-        return " * ".join([d.__repr_helper__() for d in self._items])
+        return " * ".join([str(d) for d in self._items])
 
 
 def safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
@@ -157,4 +157,4 @@ class _cdict_or(cdict):
             yield _combine_dicts(ds)
 
     def __repr_helper__(self) -> str:
-        return " | ".join([d.__repr_helper__() for d in self._items])
+        return " | ".join([str(d) for d in self._items])

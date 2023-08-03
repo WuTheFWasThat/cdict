@@ -154,6 +154,23 @@ def test_nested_times():
     ])
 
 
+def test_map():
+    c0 = (C.dict(a=5, b=3) + C.dict(a=6, b=4)) * C.dict(seed=C.list(1, 2))
+    def increment_a(d):
+        d['a'] += 1
+        return d
+    c0 = c0.map(increment_a)
+    def aplusb(d):
+        d['sum'] = d['a'] + d['b']
+        return d
+    c0 = c0.map(aplusb)
+    assert_dicts(c0, [
+        dict(a=6, b=3, seed=1, sum=9),
+        dict(a=6, b=3, seed=2, sum=9),
+        dict(a=7, b=4, seed=1, sum=11),
+        dict(a=7, b=4, seed=2, sum=11),
+    ])
+
 
 def test_overwriting():
     c0 = C.dict(a=5, b=3)
@@ -266,6 +283,7 @@ if __name__ == "__main__":
     test_multilist()
     test_simple()
     test_overwriting()
+    test_map()
     test_nested_times()
     test_or()
     test_distributive()
