@@ -63,7 +63,7 @@ def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
         for k, v in d.items():
             if k in res:
                 if not hasattr(res[k], "cdict_combine"):
-                    raise ValueError(f"Cannot combine key {k}: {res[k]} and {v}")
+                    raise ValueError(f"No cdict_combine method found.  Cannot combine key {k}: {res[k]} and {v}")
                 res[k] = res[k].cdict_combine(v)
             else:
                 res[k] = v
