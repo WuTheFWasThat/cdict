@@ -129,7 +129,7 @@ class _cdict_apply(cdict):
 class _cdict_product(cdict):
     def __init__(self, _items: list[cdict]) -> None:
         for c in _items:
-            assert isinstance(c, cdict), "Cannot multiply non-cdicts"
+            assert isinstance(c, cdict), f"Cannot multiply non-cdicts: {c}"
         self._items = _items
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
