@@ -35,6 +35,13 @@ class cdict():
             yield fn(x)
         return _cdict_apply(apply_fn, self)
 
+    def filter(self, fn: Callable[[Any], bool]) -> cdict:
+        @functools.wraps(fn)
+        def apply_fn(x: Any) -> Any:
+            if fn(x):
+                yield x
+        return _cdict_apply(apply_fn, self)
+
     def __iter__(self) -> Generator[AnyDict, None, None]:
         raise NotImplementedError("Please override this method")
 

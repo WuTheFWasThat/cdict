@@ -85,14 +85,19 @@ assert list(sweep_concise) == [
     dict(a=2, aa=4, b=2),
 ]
 
+sweep_concise = sweep_concise.filter(lambda d: d['aa'] != d['b'])
+assert list(sweep_concise) == [
+    dict(a=1, aa=1, b=2),
+    dict(a=2, aa=4, b=1),
+    dict(a=2, aa=4, b=2),
+]
+
 def add_seeds(x):
     for i in range(2):
         yield dict(**x, seed=x['a'] * 100 + x['b'] * 10 + i)
 
 sweep_concise = sweep_concise.apply(add_seeds)
 assert list(sweep_concise) == [
-    dict(a=1, aa=1, b=1, seed=110),
-    dict(a=1, aa=1, b=1, seed=111),
     dict(a=1, aa=1, b=2, seed=120),
     dict(a=1, aa=1, b=2, seed=121),
     dict(a=2, aa=4, b=1, seed=210),
