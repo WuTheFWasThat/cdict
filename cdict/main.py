@@ -5,37 +5,37 @@ import itertools
 
 AnyDict = dict[Any, Any]
 
-class cdict():
+class cdict_base():
     @classmethod
-    def dict(cls, **kwargs: Any) -> cdict:
+    def dict(cls, **kwargs: Any) -> cdict_base:
         return _cdict_dict(kwargs)
 
     @classmethod
-    def finaldict(cls, **kwargs: Any) -> cdict:
+    def finaldict(cls, **kwargs: Any) -> cdict_base:
         return _cdict_dict(kwargs, overridable=False)
 
     @classmethod
-    def iter(cls, it: Any) -> cdict:
+    def iter(cls, it: Any) -> cdict_base:
         return _cdict_sum(it)
 
     @classmethod
-    def list(cls, *args: Any) -> cdict:
+    def list(cls, *args: Any) -> cdict_base:
         return cls.iter(args)
 
     @classmethod
-    def sum(cls, args: Iterable[cdict]) -> cdict:
+    def sum(cls, args: Iterable[cdict_base]) -> cdict_base:
         return sum(args, cls.list())
 
-    def apply(self, fn: Callable[[Any], Any]) -> cdict:
+    def apply(self, fn: Callable[[Any], Any]) -> cdict_base:
         return _cdict_apply(fn, self)
 
-    def map(self, fn: Callable[[Any], Any]) -> cdict:
+    def map(self, fn: Callable[[Any], Any]) -> cdict_base:
         @functools.wraps(fn)
         def apply_fn(x: Any) -> Any:
             yield fn(x)
         return _cdict_apply(apply_fn, self)
 
-    def filter(self, fn: Callable[[Any], bool]) -> cdict:
+    def filter(self, fn: Callable[[Any], bool]) -> cdict_base:
         @functools.wraps(fn)
         def apply_fn(x: Any) -> Any:
             if fn(x): yield x
@@ -44,13 +44,13 @@ class cdict():
     def __iter__(self) -> Generator[AnyDict, None, None]:
         raise NotImplementedError("Please override this method")
 
-    def __add__(self, other: cdict) -> cdict:
+    def __add__(self, other: cdict_base) -> cdict_base:
         return _cdict_sum([self, other])
 
-    def __mul__(self, other: cdict) -> cdict:
+    def __mul__(self, other: cdict_base) -> cdict_base:
         return _cdict_product([self, other])
 
-    def __or__(self, other: cdict) -> cdict:
+    def __or__(self, other: cdict_base) -> cdict_base:
         return _cdict_or([self, other])
 
     def __repr_helper__(self) -> str:
@@ -81,7 +81,7 @@ class _cdict_combinable_dict(AnyDict):
         return _cdict_combinable_dict(_combine_dicts([self, other]))
 
 
-class _cdict_dict(cdict):
+class _cdict_dict(cdict_base):
     def __init__(self, _item: AnyDict, overridable: bool = True) -> None:
         self._item = _item
         self._overridable = overridable
@@ -91,7 +91,7 @@ class _cdict_dict(cdict):
         d = self._item
         ks = list(d.keys())
         for vs in itertools.product(
-            *(iter(v) if isinstance(v, cdict) else [v] for k, v in d.items())
+            *(iter(v) if isinstance(v, cdict_base) else [v] for k, v in d.items())
         ):
             d = {k: v for k, v in zip(ks, vs)}
             yield _cdict_combinable_dict(d) if self._overridable else d
@@ -100,13 +100,13 @@ class _cdict_dict(cdict):
         return ", ".join([f"{k}={v}" for k, v in self._item.items()])
 
 
-class _cdict_sum(cdict):
+class _cdict_sum(cdict_base):
     def __init__(self, _items: Iterable[Any]) -> None:
         self._items = _items
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
         for d in iter(self._items):
-            if isinstance(d, cdict):
+            if isinstance(d, cdict_base):
                 yield from d
             else:
                 # bit of a hack for the sake of nested cdict.list convenience
@@ -119,8 +119,8 @@ class _cdict_sum(cdict):
             return "sum(" + str(self._items) + ")"
 
 
-class _cdict_apply(cdict):
-    def __init__(self, fn: Callable[[Any], Any], _inner: cdict) -> None:
+class _cdict_apply(cdict_base):
+    def __init__(self, fn: Callable[[Any], Any], _inner: cdict_base) -> None:
         self._inner = _inner
         self._fn = fn
 
@@ -132,10 +132,10 @@ class _cdict_apply(cdict):
         return f"apply({self._fn}, {self._inner})"
 
 
-class _cdict_product(cdict):
-    def __init__(self, _items: list[cdict]) -> None:
+class _cdict_product(cdict_base):
+    def __init__(self, _items: list[cdict_base]) -> None:
         for c in _items:
-            assert isinstance(c, cdict), f"Cannot multiply non-cdicts: {c}"
+            assert isinstance(c, cdict_base), f"Cannot multiply non-cdicts: {c}"
         self._items = _items
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
@@ -154,8 +154,8 @@ def _safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
         yield tup
 
 
-class _cdict_or(cdict):
-    def __init__(self, _items: list[cdict]) -> None:
+class _cdict_or(cdict_base):
+    def __init__(self, _items: list[cdict_base]) -> None:
         self._items = _items
 
     def __iter__(self) -> Generator[AnyDict, None, None]:

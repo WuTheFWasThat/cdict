@@ -30,6 +30,8 @@ Though probably a more arduous read, [the codebase](./cdict/main.py) is as short
 ```python
 import pytest
 from cdict import C
+# NOTE: you can also instead do
+# from cdict import cdict, citer, clist, csum, cfinaldict
 
 ###############################################################################
 # The basics
