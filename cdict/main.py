@@ -50,8 +50,8 @@ class cdict_base():
     def __mul__(self, other: cdict_base) -> cdict_base:
         return _cdict_product([self, other])
 
-    def __or__(self, other: cdict_base) -> cdict_base:
-        return _cdict_or([self, other])
+    def __xor__(self, other: cdict_base) -> cdict_base:
+        return _cdict_xor([self, other])
 
     def __repr_helper__(self) -> str:
         raise NotImplementedError("Please override this method")
@@ -154,7 +154,7 @@ def _safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
         yield tup
 
 
-class _cdict_or(cdict_base):
+class _cdict_xor(cdict_base):
     def __init__(self, _items: list[cdict_base]) -> None:
         self._items = _items
 
@@ -163,4 +163,4 @@ class _cdict_or(cdict_base):
             yield _combine_dicts(ds)
 
     def __repr_helper__(self) -> str:
-        return " | ".join([str(d) for d in self._items])
+        return " ^ ".join([str(d) for d in self._items])

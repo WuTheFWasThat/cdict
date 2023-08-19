@@ -192,7 +192,7 @@ def test_overwriting():
         dict(a=11, b=3, c=4),
     ])
 
-    assert_dicts(c0 | c1, [
+    assert_dicts(c0 ^ c1, [
         dict(a=11, b=3, c=4),
     ])
 
@@ -212,13 +212,13 @@ def test_or():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
     with pytest.raises(ValueError):
-        assert_dicts(c0 | c1, [
+        assert_dicts(c0 ^ c1, [
             dict(a=6, b=3, c=4),
         ])
 
     c0 = C.dict(a=C.list(5, 6), b=3)
     c1 = C.dict(c=C.list(4, 3))
-    assert_dicts(c0 | c1, [
+    assert_dicts(c0 ^ c1, [
         dict(a=5, b=3, c=4),
         dict(a=6, b=3, c=3),
     ])
@@ -229,7 +229,7 @@ def test_or():
 
     c0 = C.dict(a=C.list(overriding_number(5), overriding_number(6)), b=3)
     c1 = C.dict(a=6, c=C.list(4, 3))
-    assert_dicts(c0 | c1, [
+    assert_dicts(c0 ^ c1, [
         dict(a=6, b=3, c=4),
         dict(a=6, b=3, c=3),
     ])
@@ -237,7 +237,7 @@ def test_or():
     with pytest.raises(ValueError):
         c0 = C.dict(a=C.list(1, 2, 3))
         c1 = C.dict(b=C.list(1, 2))
-        list(c0 | c1)
+        list(c0 ^ c1)
 
 
 def test_distributive():

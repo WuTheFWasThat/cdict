@@ -10,15 +10,15 @@ This is a small library for creating lists of dictionaries combinatorially, for 
 
 ### Basic features and primitives
 
-You can think of the basic unit in `cdict` to be a list of dictionaries.  We then have two main operations:
+The basic unit in `cdict` is essentially a list of dictionaries.  We then have two main operations:
 
-- `+` which concatenates experiments (include list 1 and list 2)
-- `*` which does an outer product/grid sweep (make a new list by merging pairs of dictionaries from list 1 and list 2)
+- `+` which concatenates (include dictionaries in list 1 and list 2)
+- `*` which does a sort of grid sweep or Cartesian product (new dictionaries formed by merging all pairs of dictionaries from list 1 and list 2)
 
 There are a number of other more advanced features like
 - nesting of `cdict`s
 - transforms of `cdict`s
-- customizable override behavior
+- customizable behavior for conflicting keys (during `*`)
 - `|` which zips experiment sets of equal length
 
 ### Examples
@@ -170,7 +170,7 @@ assert list(sweep_squares_filtered_seeded) == [
 ###############################################################################
 
 # zipping of equal length things
-diag_sweep = sweep_a | sweep_b
+diag_sweep = sweep_a ^ sweep_b
 assert list(diag_sweep) == [
     dict(a=1, b=1),
     dict(a=2, b=2),
@@ -249,11 +249,12 @@ assert list(nested_sweep) == [
 `cdict` combinators have some nice properties
 
 - `+` is associative.
-- `*` and `|` are associative if 1
+- `*` and `^` are associative if 1
 - `*` is left-distributive over `+`, and right-distributive if 2
 - `+`  is commutative if 2
-- `|` is commutative if 1
+- `^` is commutative if 1
 - `*` is commutative if 1 and 2
+- `(a + b) ^ (c + d) = (a ^ c) + (b ^ d)` if `a` and `c` have equal lengths
 
 1:  values implement `cdict_combine` satisfying the same property, at any/all conflicting keys
 
