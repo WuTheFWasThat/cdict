@@ -2,6 +2,8 @@ import time
 import pytest
 import re
 import os
+import traceback
+import sys
 
 from cdict import C
 import mypy.api
@@ -261,7 +263,14 @@ def test_readme_code():
     code = m.group(1)
     assert code.startswith('python')
     code = code[6:].strip()
-    exec(code, globals(), globals())
+    try:
+        exec(code, globals(), globals())
+    except Exception as err:
+        error_class = err.__class__.__name__
+        detail = err.args[0] if len(err.args) else ""
+        cl, exc, tb = sys.exc_info()
+        line_number = traceback.extract_tb(tb)[-1][1]
+        raise Exception(f'Error in README.md line {line_number}: {error_class} {detail}')
 
 
 def test_types():

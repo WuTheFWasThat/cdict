@@ -38,8 +38,7 @@ class cdict():
     def filter(self, fn: Callable[[Any], bool]) -> cdict:
         @functools.wraps(fn)
         def apply_fn(x: Any) -> Any:
-            if fn(x):
-                yield x
+            if fn(x): yield x
         return _cdict_apply(apply_fn, self)
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
@@ -147,7 +146,7 @@ class _cdict_product(cdict):
         return " * ".join([str(d) for d in self._items])
 
 
-def safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
+def _safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
     sentinel = object()
     for tup in itertools.zip_longest(*iterables, fillvalue=sentinel):
         if sentinel in tup:
@@ -160,7 +159,7 @@ class _cdict_or(cdict):
         self._items = _items
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
-        for ds in safe_zip(*self._items):
+        for ds in _safe_zip(*self._items):
             yield _combine_dicts(ds)
 
     def __repr_helper__(self) -> str:
