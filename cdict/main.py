@@ -160,7 +160,7 @@ class _cdict_xor(cdict_base):
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
         for ds in _safe_zip(*self._items):
-            yield _combine_dicts(ds)
+            yield _cdict_combinable_dict(_combine_dicts(ds))
 
     def __repr_helper__(self) -> str:
         return " ^ ".join([str(d) for d in self._items])

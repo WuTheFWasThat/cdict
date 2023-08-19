@@ -254,6 +254,21 @@ def test_commutative_mult():
     assert_equivalent_sets(a0 * a1, a1 * a0)
 
 
+def test_or_distribution_property():
+    a = C.dict(a=C.list(1,2))
+    b = C.dict(b=C.list(3,4))
+    c = C.dict(c=C.list(5,6))
+    d = C.dict(d=C.list(7,8))
+    assert_equivalent_sets(
+        (a + b) ^ (c + d),
+        (a ^ c) + (b ^ d)
+    )
+    assert_equivalent_sets(
+        (a * b) ^ (c * d),
+        (a ^ c) * (b ^ d)
+    )
+
+
 def test_readme_code():
     readme_file = os.path.join(os.path.dirname(__file__), '..', 'README.md')
     with open(readme_file) as f:

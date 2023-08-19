@@ -12,20 +12,20 @@ This is a small library for creating lists of dictionaries combinatorially, for 
 
 The basic unit in `cdict` is essentially a list of dictionaries.  We then have two main operations:
 
-- `+` which concatenates (include items in list 1 and list 2)
-- `*` which does a sort of grid sweep or Cartesian product (new items formed by combining all pairs of items from list 1 and list 2)
+- `+` which concatenates (includes items in list 1 and list 2)
+- `*` which does a grid sweep or Cartesian product (includes items formed by combining all pairs of items from list 1 and list 2)
 
 There are a number of other more advanced features like
 - nesting of `cdict`s
 - transforms of `cdict`s
-- customizable behavior for conflicting keys (during `*`)
+- customizable behavior for "combining" and conflict resolution
 - `|` which zips experiment sets of equal length
 
 ### Examples
 
 It can be easier to understand `cdict` by example!
 
-Though probably a more arduous read, [the codebase](./cdict/main.py) is as short as the examples below :)
+(Though shorter than the examples below, [the codebase](./cdict/main.py) is probably a more arduous read..)
 
 ```python
 import pytest
@@ -153,16 +153,13 @@ assert list(sweep_squares_filtered) == [
 # more general transforms with apply
 def add_seeds(x):
     for i in range(2):
-        yield dict(**x, seed=x['a'] * 100 + x['b'] * 10 + i)
+        yield dict(aab=x['aa'] * x['b'], seed=x['a'] * 100 + x['b'] * 10 + i)
 
 sweep_squares_filtered_seeded = sweep_squares_filtered.apply(add_seeds)
 assert list(sweep_squares_filtered_seeded) == [
-    dict(a=1, aa=1, b=2, seed=120),
-    dict(a=1, aa=1, b=2, seed=121),
-    dict(a=2, aa=4, b=1, seed=210),
-    dict(a=2, aa=4, b=1, seed=211),
-    dict(a=2, aa=4, b=2, seed=220),
-    dict(a=2, aa=4, b=2, seed=221),
+    dict(aab=2, seed=120), dict(aab=2, seed=121),
+    dict(aab=4, seed=210), dict(aab=4, seed=211),
+    dict(aab=8, seed=220), dict(aab=8, seed=221),
 ]
 
 ###############################################################################
@@ -172,8 +169,7 @@ assert list(sweep_squares_filtered_seeded) == [
 # zipping of equal length things
 diag_sweep = sweep_a ^ sweep_b
 assert list(diag_sweep) == [
-    dict(a=1, b=1),
-    dict(a=2, b=2),
+    dict(a=1, b=1), dict(a=2, b=2),
 ]
 
 ###############################################################################
@@ -271,7 +267,8 @@ assert list(nested_sweep) == [
 - `+`  is commutative if 2
 - `^` is commutative if 1
 - `*` is commutative if 1 and 2
-- `(a + b) ^ (c + d) = (a ^ c) + (b ^ d)` if `a` and `c` have equal lengths
+- `(a + b) ^ (c + d) = (a ^ c) + (b ^ d)` if `len(a) == len(c)`
+- `(a * b) ^ (c * d) = (a ^ c) * (b ^ d)` if `len(a) == len(c)` and `len(b) == len(d)`
 
 1:  values implement `cdict_combine` satisfying the same property, at any/all conflicting keys
 
