@@ -48,7 +48,7 @@ class cdict_base():
         return _cdict_sum([self, other])
 
     def __mul__(self, other: cdict_base) -> cdict_base:
-        return _cdict_product([self, other])
+        return _cdict_product(self, other)
 
     def __xor__(self, other: cdict_base) -> cdict_base:
         return _cdict_xor([self, other])
@@ -108,8 +108,7 @@ class _cdict_sum(cdict_base):
         for d in iter(self._items):
             if isinstance(d, cdict_base):
                 yield from d
-            else:
-                # bit of a hack for the sake of nested cdict.list convenience
+            else:  # bit of a hack for the sake of nested cdict.list convenience
                 yield d
 
     def __repr_helper__(self) -> str:
@@ -133,17 +132,18 @@ class _cdict_apply(cdict_base):
 
 
 class _cdict_product(cdict_base):
-    def __init__(self, _items: list[cdict_base]) -> None:
-        for c in _items:
+    def __init__(self, _item1: Any, _item2: Any) -> None:
+        for c in [_item1, _item2]:
             assert isinstance(c, cdict_base), f"Cannot multiply non-cdicts: {c}"
-        self._items = _items
+        self._item1 = _item1
+        self._item2 = _item2
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
-        for ds in itertools.product(*self._items):
-            yield _combine_dicts(ds)
+        for (d1, d2) in itertools.product(self._item1, self._item2):
+            yield d1.cdict_combine(d2)
 
     def __repr_helper__(self) -> str:
-        return " * ".join([str(d) for d in self._items])
+        return " * ".join([str(d) for d in [self._item1, self._item2]])
 
 
 def _safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:

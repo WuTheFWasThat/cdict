@@ -12,8 +12,8 @@ This is a small library for creating lists of dictionaries combinatorially, for 
 
 The basic unit in `cdict` is essentially a list of dictionaries.  We then have two main operations:
 
-- `+` which concatenates (include dictionaries in list 1 and list 2)
-- `*` which does a sort of grid sweep or Cartesian product (new dictionaries formed by merging all pairs of dictionaries from list 1 and list 2)
+- `+` which concatenates (include items in list 1 and list 2)
+- `*` which does a sort of grid sweep or Cartesian product (new items formed by combining all pairs of items from list 1 and list 2)
 
 There are a number of other more advanced features like
 - nesting of `cdict`s
@@ -177,6 +177,27 @@ assert list(diag_sweep) == [
 ]
 
 ###############################################################################
+# cdict_combine
+###############################################################################
+
+# you can actually multiply lists of anything, as long as they implement cdict_combine
+class label(str):
+    def cdict_combine(self, other):
+        return label(self + "." + other)
+
+s = C.sum(label(f"a{i}") for i in range(1, 3)) * C.sum(label(f"b{i}") for i in range(1, 3))
+assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
+
+# or lists of lists
+s = C.sum(
+    C.sum(label(f"i{i}.j{j}") for j in range(1, 3))
+    for i in range(1, 3)
+) * C.sum(
+    label(f"k{k}") for k in range(1, 3)
+)
+assert list(s) == ['i1.j1.k1', 'i1.j1.k2', 'i1.j2.k1', 'i1.j2.k2', 'i2.j1.k1', 'i2.j1.k2', 'i2.j2.k1', 'i2.j2.k2']
+
+###############################################################################
 # Conflict resolution
 ###############################################################################
 
@@ -186,11 +207,7 @@ s2 = C.dict(b=1, label="b1")
 with pytest.raises(ValueError):
     list(s1 * s2)
 
-# implementing a cdict_combine lets you override that behavior
-class label(str):
-    def cdict_combine(self, other):
-        return label(self + "." + other)
-
+# implementing a cdict_combine lets you override that behavior!
 s1 = C.sum(C.dict(a=a, label=label(f"a{a}")) for a in [1, 2])
 s2 = C.sum(C.dict(b=b, label=label(f"b{b}")) for b in [1, 2])
 assert list(s1 * s2) == [
