@@ -19,7 +19,7 @@ Other features include:
 - nesting of `cdict`s
 - customizable combining behavior, gives user control over conflict resolution
 - transforms of `cdict`s
-- `^` which does a zip/elementwise product of lists of equal length
+- `|` which does a zip/elementwise product of lists of equal length
 
 ### Examples
 
@@ -241,7 +241,7 @@ assert list(sweep_squares_filtered_seeded) == [
 ###############################################################################
 
 # zipping of equal length things
-diag_sweep = sweep_a ^ sweep_b
+diag_sweep = sweep_a | sweep_b
 assert list(diag_sweep) == [
     dict(a=1, b=1), dict(a=2, b=2),
 ]
@@ -250,20 +250,23 @@ assert list(diag_sweep) == [
 
 ### Properties
 
-`cdict` combinators have some nice properties
+`cdict` combinators have some nice properties:
 
 - `+` is associative
-- `*` and `^` are associative if 1
-- `*` is left-distributive over `+`, and right-distributive if 2
+- `*` is associative if 1
 - `+` is commutative if 2
-- `^` is commutative if 1
 - `*` is commutative if 1 and 2
-- `(a + b) ^ (c + d) = (a ^ c) + (b ^ d)` if `len(a) == len(c)`
-- `(a * b) ^ (c * d) = (a ^ c) * (b ^ d)` if `len(a) == len(c)` and `len(b) == len(d)`
+- `*` is left-distributive over `+`, and right-distributive if 2
+- `|` is associative if 1
+- `|` is commutative if 1
+- `(a + b) | (c + d) = (a | c) + (b | d)` if `len(a) == len(c)`
+- `(a * b) | (c * d) = (a | c) * (b | d)` if `len(a) == len(c)` and `len(b) == len(d)` and `cdict_combine` is associative and commutative 
 
-1: values implement `cdict_combine` satisfying the same property, at any/all conflicting keys
+Where
+1. *if values implement `cdict_combine` satisfying the same property, at any/all conflicting keys*
+2. *if ignoring order of the resulting yielded items*
 
-2: if ignoring order of the resulting yielded items
+We get essentially every property one would expect given the `+` and `*` syntax.  In fact, they form a commutative semiring with `0 = C.list()` and `1 = C.dict()`!
 
 ## Tests
 

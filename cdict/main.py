@@ -47,7 +47,7 @@ class cdict_base():
     def __mul__(self, other: cdict_base) -> cdict_base:
         return _cdict_product(self, other)
 
-    def __xor__(self, other: cdict_base) -> cdict_base:
+    def __or__(self, other: cdict_base) -> cdict_base:
         return _cdict_zip([self, other])
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
@@ -159,4 +159,4 @@ class _cdict_zip(cdict_base):
             yield _cdict_combinable_dict(_combine_dicts(ds))
 
     def __repr__(self) -> str:
-        return " ^ ".join([str(d) for d in self._items])
+        return " | ".join([str(d) for d in self._items])

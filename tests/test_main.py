@@ -192,7 +192,7 @@ def test_overwriting():
         dict(a=11, b=3, c=4),
     ])
 
-    assert_dicts(c0 ^ c1, [
+    assert_dicts(c0 | c1, [
         dict(a=11, b=3, c=4),
     ])
 
@@ -212,13 +212,13 @@ def test_or():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
     with pytest.raises(ValueError):
-        assert_dicts(c0 ^ c1, [
+        assert_dicts(c0 | c1, [
             dict(a=6, b=3, c=4),
         ])
 
     c0 = C.dict(a=C.list(5, 6), b=3)
     c1 = C.dict(c=C.list(4, 3))
-    assert_dicts(c0 ^ c1, [
+    assert_dicts(c0 | c1, [
         dict(a=5, b=3, c=4),
         dict(a=6, b=3, c=3),
     ])
@@ -229,7 +229,7 @@ def test_or():
 
     c0 = C.dict(a=C.list(overriding_number(5), overriding_number(6)), b=3)
     c1 = C.dict(a=6, c=C.list(4, 3))
-    assert_dicts(c0 ^ c1, [
+    assert_dicts(c0 | c1, [
         dict(a=6, b=3, c=4),
         dict(a=6, b=3, c=3),
     ])
@@ -237,21 +237,31 @@ def test_or():
     with pytest.raises(ValueError):
         c0 = C.dict(a=C.list(1, 2, 3))
         c1 = C.dict(b=C.list(1, 2))
-        list(c0 ^ c1)
+        list(c0 | c1)
 
 
-def test_distributive():
-    a0 = C.dict(a=C.list(1,2))
-    a1 = C.dict(a=C.list(3,4))
-    b = C.dict(b=C.list(1,2))
-    assert_equivalent(a0 * b + a1 * b, (a0 + a1) * b)
-    assert_equivalent_sets(b * a0 + b * a1, b * (a0 + a1))
 
+def test_semiring_properties():
+    a = C.dict(a=C.list(1,2))
+    b = C.dict(b=C.list(3,4))
+    c = C.dict(c=C.list(5,6))
+    zero = C.list()
+    one = C.dict()
 
-def test_commutative_mult():
-    a0 = C.dict(a=C.list(1,2))
-    a1 = C.dict(b=C.list(3,4))
-    assert_equivalent_sets(a0 * a1, a1 * a0)
+    assert_equivalent((a + b) + c, a + (b + c))
+    assert_equivalent(a + zero, a)
+    assert_equivalent(zero + a, a)
+    assert_equivalent_sets(a + b, b + a)
+
+    assert_equivalent((a * b) * c, a * (b * c))
+    assert_equivalent(a * one, a)
+    assert_equivalent(one * a, a)
+    assert_equivalent_sets(a * b, b * a)  # commutative semiring!
+
+    assert_equivalent(a * zero, zero)
+    assert_equivalent(zero * a, zero)
+    assert_equivalent(b * a + c * a, (b + c) * a)
+    assert_equivalent_sets(a * b + a * c, a * (b + c))
 
 
 def test_or_distribution_property():
@@ -259,14 +269,15 @@ def test_or_distribution_property():
     b = C.dict(b=C.list(3,4))
     c = C.dict(c=C.list(5,6))
     d = C.dict(d=C.list(7,8))
-    assert_equivalent_sets(
-        (a + b) ^ (c + d),
-        (a ^ c) + (b ^ d)
+    assert_equivalent(
+        (a + b) | (c + d),
+        (a | c) + (b | d)
     )
-    assert_equivalent_sets(
-        (a * b) ^ (c * d),
-        (a ^ c) * (b ^ d)
+    assert_equivalent(
+        (a * b) | (c * d),
+        (a | c) * (b | d)
     )
+
 
 
 def test_readme_code():
