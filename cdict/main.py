@@ -16,7 +16,7 @@ class cdict_base():
 
     @classmethod
     def iter(cls, it: Any) -> cdict_base:
-        return _cdict_sum(it)
+        return _cdict_iter(it)
 
     @classmethod
     def list(cls, *args: Any) -> cdict_base:
@@ -45,13 +45,13 @@ class cdict_base():
         raise NotImplementedError("Please override this method")
 
     def __add__(self, other: cdict_base) -> cdict_base:
-        return _cdict_sum([self, other])
+        return _cdict_iter([self, other])
 
     def __mul__(self, other: cdict_base) -> cdict_base:
         return _cdict_product(self, other)
 
     def __xor__(self, other: cdict_base) -> cdict_base:
-        return _cdict_xor([self, other])
+        return _cdict_zip([self, other])
 
     def __repr_helper__(self) -> str:
         raise NotImplementedError("Please override this method")
@@ -81,6 +81,28 @@ class _cdict_combinable_dict(AnyDict):
         return _cdict_combinable_dict(_combine_dicts([self, other]))
 
 
+def _iter_values(d: Any) -> Generator[Any, None, None]:
+    if isinstance(d, cdict_base):
+        yield from d
+    else:  # bit of a hack for the sake of nested cdict.list convenience
+        yield d
+
+
+class _cdict_iter(cdict_base):
+    def __init__(self, _items: Iterable[Any]) -> None:
+        self._items = _items
+
+    def __iter__(self) -> Generator[AnyDict, None, None]:
+        for d in iter(self._items):
+            yield from _iter_values(d)
+
+    def __repr_helper__(self) -> str:
+        if isinstance(self._items, list):
+            return " + ".join([str(d) for d in self._items])
+        else:
+            return "sum(" + str(self._items) + ")"
+
+
 class _cdict_dict(cdict_base):
     def __init__(self, _item: AnyDict, overridable: bool = True) -> None:
         self._item = _item
@@ -90,32 +112,12 @@ class _cdict_dict(cdict_base):
         # combinatorially yield
         d = self._item
         ks = list(d.keys())
-        for vs in itertools.product(
-            *(iter(v) if isinstance(v, cdict_base) else [v] for k, v in d.items())
-        ):
+        for vs in itertools.product(*(_iter_values(d[k]) for k in ks)):
             d = {k: v for k, v in zip(ks, vs)}
             yield _cdict_combinable_dict(d) if self._overridable else d
 
     def __repr_helper__(self) -> str:
         return ", ".join([f"{k}={v}" for k, v in self._item.items()])
-
-
-class _cdict_sum(cdict_base):
-    def __init__(self, _items: Iterable[Any]) -> None:
-        self._items = _items
-
-    def __iter__(self) -> Generator[AnyDict, None, None]:
-        for d in iter(self._items):
-            if isinstance(d, cdict_base):
-                yield from d
-            else:  # bit of a hack for the sake of nested cdict.list convenience
-                yield d
-
-    def __repr_helper__(self) -> str:
-        if isinstance(self._items, list):
-            return " + ".join([str(d) for d in self._items])
-        else:
-            return "sum(" + str(self._items) + ")"
 
 
 class _cdict_apply(cdict_base):
@@ -154,7 +156,7 @@ def _safe_zip(*iterables: Iterable[Any]) -> Generator[Tuple[Any], None, None]:
         yield tup
 
 
-class _cdict_xor(cdict_base):
+class _cdict_zip(cdict_base):
     def __init__(self, _items: list[cdict_base]) -> None:
         self._items = _items
 
