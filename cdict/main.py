@@ -41,9 +41,6 @@ class cdict_base():
             if fn(x): yield x
         return _cdict_apply(apply_fn, self)
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
-        raise NotImplementedError("Please override this method")
-
     def __add__(self, other: cdict_base) -> cdict_base:
         return _cdict_iter([self, other])
 
@@ -53,11 +50,8 @@ class cdict_base():
     def __xor__(self, other: cdict_base) -> cdict_base:
         return _cdict_zip([self, other])
 
-    def __repr_helper__(self) -> str:
+    def __iter__(self) -> Generator[AnyDict, None, None]:
         raise NotImplementedError("Please override this method")
-
-    def __repr__(self) -> str:
-        return f"cdict({self.__repr_helper__()})"
 
     def __len__(self) -> int:
         return len(list(iter(self)))
@@ -84,7 +78,7 @@ class _cdict_combinable_dict(AnyDict):
 def _iter_values(d: Any) -> Generator[Any, None, None]:
     if isinstance(d, cdict_base):
         yield from d
-    else:  # bit of a hack for the sake of nested cdict.list convenience
+    else:
         yield d
 
 
@@ -96,11 +90,11 @@ class _cdict_iter(cdict_base):
         for d in iter(self._items):
             yield from _iter_values(d)
 
-    def __repr_helper__(self) -> str:
-        if isinstance(self._items, list):
-            return " + ".join([str(d) for d in self._items])
+    def __repr__(self) -> str:
+        if isinstance(self._items, (list, tuple)):
+            return "clist(" + ", ".join(str(d) for d in self._items) + ")"
         else:
-            return "sum(" + str(self._items) + ")"
+            return "citer(" + str(self._items) + ")"
 
 
 class _cdict_dict(cdict_base):
@@ -116,8 +110,8 @@ class _cdict_dict(cdict_base):
             d = {k: v for k, v in zip(ks, vs)}
             yield _cdict_combinable_dict(d) if self._overridable else d
 
-    def __repr_helper__(self) -> str:
-        return ", ".join([f"{k}={v}" for k, v in self._item.items()])
+    def __repr__(self) -> str:
+        return "cdict(" + ", ".join([f"{k}={v}" for k, v in self._item.items()]) + ")"
 
 
 class _cdict_apply(cdict_base):
@@ -129,8 +123,8 @@ class _cdict_apply(cdict_base):
         for x in iter(self._inner):
             yield from self._fn(x)
 
-    def __repr_helper__(self) -> str:
-        return f"apply({self._fn}, {self._inner})"
+    def __repr__(self) -> str:
+        return f"{self._inner}.apply({self._fn})"
 
 
 class _cdict_product(cdict_base):
@@ -144,7 +138,7 @@ class _cdict_product(cdict_base):
         for (d1, d2) in itertools.product(self._item1, self._item2):
             yield d1.cdict_combine(d2)
 
-    def __repr_helper__(self) -> str:
+    def __repr__(self) -> str:
         return " * ".join([str(d) for d in [self._item1, self._item2]])
 
 
@@ -164,5 +158,5 @@ class _cdict_zip(cdict_base):
         for ds in _safe_zip(*self._items):
             yield _cdict_combinable_dict(_combine_dicts(ds))
 
-    def __repr_helper__(self) -> str:
+    def __repr__(self) -> str:
         return " ^ ".join([str(d) for d in self._items])
