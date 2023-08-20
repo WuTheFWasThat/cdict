@@ -12,14 +12,14 @@ This is a small library for creating lists of dictionaries combinatorially, for 
 
 The basic unit in `cdict` is essentially a list of dictionaries.  We then have two main operations:
 
-- `+` which concatenates (includes items in list 1 and list 2)
-- `*` which does a grid sweep or Cartesian product (includes items formed by combining all pairs of items from list 1 and list 2)
+- `a + b` concatenates (includes items in list `a` and list `b`)
+- `a * b` does an outer product (includes items formed by combining all pairs of items from list `a` and list `b`)
 
-There are a number of other more advanced features like
+Other features include:
 - nesting of `cdict`s
+- customizable combining behavior, gives user control over conflict resolution
 - transforms of `cdict`s
-- customizable behavior for "combining" and conflict resolution
-- `|` which zips experiment sets of equal length
+- `^` which does a zip/elementwise product of lists of equal length
 
 ### Examples
 
@@ -41,19 +41,18 @@ from cdict import C
 a1 = C.dict(a=1)
 # cdicts always represent a list of dictionaries
 assert list(a1) == [dict(a=1)]
-
-# "add" cdicts by union-ing the set of dicts
 a2 = C.dict(a=2)
 assert list(a2) == [dict(a=2)]
+
+# "add" cdicts by union-ing the set of dicts
 sweep_a = a1 + a2
 assert list(sweep_a) == [dict(a=1), dict(a=2)]
 
 # equivalent way to add
-sweep_a = C.sum(C.dict(a=a) for a in [1,2])
-assert list(sweep_a) == [dict(a=1), dict(a=2)]
+sweep_b = C.sum(C.dict(b=b) for b in [1,2])
+assert list(sweep_b) == [dict(b=1), dict(b=2)]
 
 # "multiply" cdicts by combinatorially combining all possibilities
-sweep_b = C.dict(b=1) + C.dict(b=2)
 sweep_ab = sweep_a * sweep_b
 assert list(sweep_ab) == [
     dict(a=1, b=1), dict(a=1, b=2),
@@ -76,9 +75,41 @@ assert list(sweep_complex) == [
     dict(a=0, b=0),
 ]
 
-# equivalent
+# equivalent, thanks to left-distributive property
 sweep_complex_2 = sweep_a * sweep_b + sweep_z * sweep_b + baseline
 assert list(sweep_complex_2) == list(sweep_complex)
+
+###############################################################################
+# cdict_combine
+###############################################################################
+
+# you can actually multiply lists of anything, as long as they implement cdict_combine
+class joinstr(str):
+    def cdict_combine(self, other):
+        return joinstr(self + "." + other)
+
+s = C.sum(joinstr(f"a{i}") for i in range(1, 3)) * C.sum(joinstr(f"b{i}") for i in range(1, 3))
+assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
+
+###############################################################################
+# Conflicting dict keys
+###############################################################################
+
+# conflicting keys errors by default
+s1 = C.sum(C.dict(a=a, uid=f"a{a}") for a in [1, 2])
+s2 = C.sum(C.dict(b=b, uid=f"b{b}") for b in [1, 2])
+with pytest.raises(ValueError):
+    list(s1 * s2)
+
+# implementing a cdict_combine lets you override that behavior!
+s1 = C.sum(C.dict(a=a, uid=joinstr(f"a{a}")) for a in [1, 2])
+s2 = C.sum(C.dict(b=b, uid=joinstr(f"b{b}")) for b in [1, 2])
+assert list(s1 * s2) == [
+    dict(a=1, b=1, uid="a1.b1"),
+    dict(a=1, b=2, uid="a1.b2"),
+    dict(a=2, b=1, uid="a2.b1"),
+    dict(a=2, b=2, uid="a2.b2"),
+]
 
 ###############################################################################
 # Nesting, basics
@@ -86,8 +117,8 @@ assert list(sweep_complex_2) == list(sweep_complex)
 
 # You can nest cdicts, to get lists of nested dicts.
 # This is useful if you have nested configuration
-nested_sweep = C.dict(nested_a=sweep_a, nested_b=sweep_b)
-assert list(nested_sweep) == [
+sweep_nested = C.dict(nested_a=sweep_a, nested_b=sweep_b)
+assert list(sweep_nested) == [
     dict(nested_a=dict(a=1), nested_b=dict(b=1)),
     dict(nested_a=dict(a=1), nested_b=dict(b=2)),
     dict(nested_a=dict(a=2), nested_b=dict(b=1)),
@@ -95,8 +126,8 @@ assert list(nested_sweep) == [
 ]
 
 # Multiplying nested cdicts acts as expected
-nested_sweep_2 = C.dict(nested_a=sweep_a) * C.dict(nested_b=sweep_b)
-assert list(nested_sweep_2) == list(nested_sweep)
+sweep_nested_2 = C.dict(nested_a=sweep_a) * C.dict(nested_b=sweep_b)
+assert list(sweep_nested_2) == list(sweep_nested)
 
 ###############################################################################
 # Nesting convenience syntax
@@ -114,12 +145,55 @@ assert list(sweep_concise) == [
 ]
 
 ###############################################################################
+# Nesting and conflicts
+###############################################################################
+
+# you can multiply within nesting (under the hood, because cdict items implement cdict_combine by default!)
+nested_sweep = (
+    C.dict(nested=C.dict(a=C.list(1, 2))) *
+    C.dict(nested=C.dict(b=C.list(1, 2)))
+)
+assert list(nested_sweep) == [
+    dict(nested=dict(a=1, b=1)),
+    dict(nested=dict(a=1, b=2)),
+    dict(nested=dict(a=2, b=1)),
+    dict(nested=dict(a=2, b=2)),
+]
+
+# to change that behavior, use finaldict (yields normal dicts that don't implement cdict_combine)
+nested_sweep_fail = (
+    C.dict(nested=C.finaldict(a=C.list(1, 2))) *
+    C.dict(nested=C.dict(b=C.list(1, 2)))
+)
+with pytest.raises(ValueError):
+    list(nested_sweep_fail)
+
+# ordering matters for declaring finality
+nested_sweep_success = (
+    C.dict(nested=C.dict(a=C.list(1, 2))) *
+    C.dict(nested=C.finaldict(b=C.list(1, 2)))
+)
+assert list(nested_sweep_success) == list(nested_sweep)
+
+# also fails with objects that don't implement cdict_combine 
+nested_sweep_fail_2 = C.dict(nested=C.dict(a=1)) * C.dict(nested=C.dict(a=2))
+with pytest.raises(ValueError):
+    list(nested_sweep_fail_2)
+
+# since the outer dict isn't final, separate keys is fine even with final values
+nested_sweep_nonconflict = (
+    C.dict(nested_a=C.finaldict(a=C.list(1, 2))) *
+    C.dict(nested_b=C.finaldict(b=C.list(1, 2)))
+)
+assert list(nested_sweep_nonconflict) == list(sweep_nested)
+
+###############################################################################
 # Everything can be lazy
 ###############################################################################
 
 # avoid lists if needed, for memory efficiency
-sweep_concise = C.dict(a=C.iter(range(1, 3)), b=C.iter(range(1, 3)))
-it = iter(sweep_concise)
+sweep_lazy = C.dict(a=C.iter(range(1, 3)), b=C.iter(range(1, 3)))
+it = iter(sweep_lazy)
 assert next(it) == dict(a=1, b=1)
 assert next(it) == dict(a=1, b=2)
 assert next(it) == dict(a=2, b=1)
@@ -172,107 +246,24 @@ assert list(diag_sweep) == [
     dict(a=1, b=1), dict(a=2, b=2),
 ]
 
-###############################################################################
-# cdict_combine
-###############################################################################
-
-# you can actually multiply lists of anything, as long as they implement cdict_combine
-class label(str):
-    def cdict_combine(self, other):
-        return label(self + "." + other)
-
-s = C.sum(label(f"a{i}") for i in range(1, 3)) * C.sum(label(f"b{i}") for i in range(1, 3))
-assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
-
-# or lists of lists
-s = C.sum(
-    C.sum(label(f"i{i}.j{j}") for j in range(1, 3))
-    for i in range(1, 3)
-) * C.sum(
-    label(f"k{k}") for k in range(1, 3)
-)
-assert list(s) == ['i1.j1.k1', 'i1.j1.k2', 'i1.j2.k1', 'i1.j2.k2', 'i2.j1.k1', 'i2.j1.k2', 'i2.j2.k1', 'i2.j2.k2']
-
-###############################################################################
-# Conflict resolution
-###############################################################################
-
-# conflicting keys errors by default
-s1 = C.dict(a=1, label="a1")
-s2 = C.dict(b=1, label="b1")
-with pytest.raises(ValueError):
-    list(s1 * s2)
-
-# implementing a cdict_combine lets you override that behavior!
-s1 = C.sum(C.dict(a=a, label=label(f"a{a}")) for a in [1, 2])
-s2 = C.sum(C.dict(b=b, label=label(f"b{b}")) for b in [1, 2])
-assert list(s1 * s2) == [
-    dict(a=1, b=1, label="a1.b1"),
-    dict(a=1, b=2, label="a1.b2"),
-    dict(a=2, b=1, label="a2.b1"),
-    dict(a=2, b=2, label="a2.b2"),
-]
-
-###############################################################################
-# Conflict resolution and nesting
-###############################################################################
-
-# you can multiply within nesting (under the hood, because cdict items implement cdict_combine by default!)
-nested_sweep = (
-    C.dict(nested=C.dict(a=C.list(1, 2))) *
-    C.dict(nested=C.dict(b=C.list(1, 2)))
-)
-assert list(nested_sweep) == [
-    dict(nested=dict(a=1, b=1)),
-    dict(nested=dict(a=1, b=2)),
-    dict(nested=dict(a=2, b=1)),
-    dict(nested=dict(a=2, b=2)),
-]
-
-# to change that behavior, use finaldict (yields normal dicts that don't implement cdict_combine)
-nested_sweep_fail = (
-    C.dict(nested=C.finaldict(a=C.list(1, 2))) *
-    C.dict(nested=C.dict(b=C.list(1, 2)))
-)
-with pytest.raises(ValueError):
-    list(nested_sweep_fail)
-
-# ordering matters for declaring finality
-nested_sweep_success = (
-    C.dict(nested=C.dict(a=C.list(1, 2))) *
-    C.dict(nested=C.finaldict(b=C.list(1, 2)))
-)
-assert list(nested_sweep_success) == list(nested_sweep)
-
-# since the outer dict isn't final, separate keys is fine even with final values
-nested_sweep = (
-    C.dict(nested_a=C.finaldict(a=C.list(1, 2))) *
-    C.dict(nested_b=C.finaldict(b=C.list(1, 2)))
-)
-assert list(nested_sweep) == [
-    dict(nested_a=dict(a=1), nested_b=dict(b=1)),
-    dict(nested_a=dict(a=1), nested_b=dict(b=2)),
-    dict(nested_a=dict(a=2), nested_b=dict(b=1)),
-    dict(nested_a=dict(a=2), nested_b=dict(b=2)),
-]
 ```
 
 ### Properties
 
 `cdict` combinators have some nice properties
 
-- `+` is associative.
+- `+` is associative
 - `*` and `^` are associative if 1
 - `*` is left-distributive over `+`, and right-distributive if 2
-- `+`  is commutative if 2
+- `+` is commutative if 2
 - `^` is commutative if 1
 - `*` is commutative if 1 and 2
 - `(a + b) ^ (c + d) = (a ^ c) + (b ^ d)` if `len(a) == len(c)`
 - `(a * b) ^ (c * d) = (a ^ c) * (b ^ d)` if `len(a) == len(c)` and `len(b) == len(d)`
 
-1:  values implement `cdict_combine` satisfying the same property, at any/all conflicting keys
+1: values implement `cdict_combine` satisfying the same property, at any/all conflicting keys
 
-2:  if ignoring order of the resulting yielded items
+2: if ignoring order of the resulting yielded items
 
 ## Tests
 
