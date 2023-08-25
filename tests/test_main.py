@@ -159,10 +159,12 @@ def test_nested_times():
 def test_map():
     c0 = (C.dict(a=5, b=3) + C.dict(a=6, b=4)) * C.dict(seed=C.list(1, 2))
     def increment_a(d):
+        d = dict(**d)
         d['a'] += 1
         return d
     c0 = c0.map(increment_a)
     def aplusb(d):
+        d = dict(**d)
         d['sum'] = d['a'] + d['b']
         return d
     c0 = c0.map(aplusb)

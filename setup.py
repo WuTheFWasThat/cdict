@@ -6,6 +6,7 @@ setup(
     version="1.0.2",
     author="Jeffrey Wu",
     install_requires=[
+        "immutabledict",
     ],
     url="https://github.com/wuthefwasthat/cdict",
     description="Combinatorial dictionaries",

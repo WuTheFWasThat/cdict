@@ -205,6 +205,8 @@ assert next(it) == dict(a=2, b=2)
 
 # and transform with map
 def square_a(x):
+    # original x is immutable, so we make a copy
+    x = dict(**x)
     x['aa'] = x['a']**2
     return x
 

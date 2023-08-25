@@ -2,8 +2,10 @@ from __future__ import annotations
 import functools
 from typing import Any, Union, Iterable, Optional, Generator, Tuple, Callable
 import itertools
+from immutabledict import immutabledict
 
-AnyDict = dict[Any, Any]
+AnyDict = Union[dict[Any, Any], immutabledict[Any, Any]]
+
 
 class cdict_base():
     @classmethod
@@ -58,7 +60,7 @@ class cdict_base():
 
 
 def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
-    res: AnyDict = {}
+    res: dict[Any, Any] = {}
     for d in ds:
         for k, v in d.items():
             if k in res:
@@ -70,7 +72,7 @@ def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
     return res
 
 
-class _cdict_combinable_dict(AnyDict):
+class _cdict_combinable_dict(immutabledict[Any, Any]):
     def cdict_combine(self, other: AnyDict) -> _cdict_combinable_dict:
         return _cdict_combinable_dict(_combine_dicts([self, other]))
 
@@ -108,7 +110,7 @@ class _cdict_dict(cdict_base):
         ks = list(d.keys())
         for vs in itertools.product(*(_iter_values(d[k]) for k in ks)):
             d = {k: v for k, v in zip(ks, vs)}
-            yield _cdict_combinable_dict(d) if self._overridable else d
+            yield _cdict_combinable_dict(d) if self._overridable else immutabledict(d)
 
     def __repr__(self) -> str:
         return "cdict(" + ", ".join([f"{k}={v}" for k, v in self._item.items()]) + ")"
@@ -121,7 +123,8 @@ class _cdict_apply(cdict_base):
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
         for x in iter(self._inner):
-            yield from self._fn(x)
+            for y in self._fn(x):
+                yield immutabledict(y)
 
     def __repr__(self) -> str:
         return f"{self._inner}.apply({self._fn})"
