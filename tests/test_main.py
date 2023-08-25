@@ -174,6 +174,32 @@ def test_map():
     ])
 
 
+
+def test_mut():
+    mut = C.dict(
+            inner=C.dict(a=1)
+    ) * (
+        C.dict() + C.dict(inner=C.dict(b=1))
+    )
+
+    for x, inner in zip(mut, [dict(a=1), dict(a=1, b=1)]):
+        assert x['inner'] == inner
+
+    # very weird mutation behavior :(
+    # TODO, fix?
+    for x, inner in zip(mut, [dict(a=1), dict(b=1)]):
+        assert x['inner'] == inner
+        if 'a' in x['inner']:
+            x['inner'].pop('a')
+
+    # mutating after getting the whole list is fine
+    for x, inner in zip(list(mut), [dict(a=1), dict(a=1, b=1)]):
+        assert x['inner'] == inner
+        if 'a' in x['inner']:
+            x['inner'].pop('a')
+
+
+
 def test_list_of_dicts():
     clist = C.dict(
         a=C.list(

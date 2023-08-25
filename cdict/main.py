@@ -107,6 +107,7 @@ class _cdict_dict(cdict_base):
         d = self._item
         ks = list(d.keys())
         for vs in itertools.product(*(_iter_values(d[k]) for k in ks)):
+            # NOTE: could do deecopy(v) here to avoid weird issues if user mutates
             d = {k: v for k, v in zip(ks, vs)}
             yield _cdict_combinable_dict(d) if self._overridable else d
 
