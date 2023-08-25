@@ -161,18 +161,23 @@ def test_map():
     def increment_a(d):
         d['a'] += 1
         return d
-    c0 = c0.map(increment_a)
+    c1 = c0.map(increment_a)
     def aplusb(d):
         d['sum'] = d['a'] + d['b']
         return d
-    c0 = c0.map(aplusb)
+    csum = c1.map(aplusb)
     assert_dicts(c0, [
+        dict(a=5, b=3, seed=1),
+        dict(a=5, b=3, seed=2),
+        dict(a=6, b=4, seed=1),
+        dict(a=6, b=4, seed=2),
+    ])
+    assert_dicts(csum, [
         dict(a=6, b=3, seed=1, sum=9),
         dict(a=6, b=3, seed=2, sum=9),
         dict(a=7, b=4, seed=1, sum=11),
         dict(a=7, b=4, seed=2, sum=11),
     ])
-
 
 
 def test_mut():
@@ -197,7 +202,6 @@ def test_mut():
         assert x['inner'] == inner
         if 'a' in x['inner']:
             x['inner'].pop('a')
-
 
 
 def test_list_of_dicts():
@@ -404,6 +408,7 @@ if __name__ == "__main__":
     test_dotkeys()
     test_overwriting()
     test_map()
+    test_mut()
     test_nested_times()
     test_or()
     test_semiring_properties()

@@ -2,6 +2,7 @@ from __future__ import annotations
 import functools
 from typing import Any, Union, Iterable, Optional, Generator, Tuple, Callable
 import itertools
+from copy import deepcopy
 
 AnyDict = dict[Any, Any]
 
@@ -50,8 +51,12 @@ class cdict_base():
     def __or__(self, other: cdict_base) -> cdict_base:
         return _cdict_zip([self, other])
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[AnyDict, None, None]:
         raise NotImplementedError("Please override this method")
+
+    def __iter__(self) -> Generator[AnyDict, None, None]:
+        for x in self.cdict_iter():
+            yield deepcopy(x)
 
     def __len__(self) -> int:
         return len(list(iter(self)))
@@ -77,7 +82,7 @@ class _cdict_combinable_dict(AnyDict):
 
 def _iter_values(d: Any) -> Generator[Any, None, None]:
     if isinstance(d, cdict_base):
-        yield from d
+        yield from d.cdict_iter()
     else:
         yield d
 
@@ -86,7 +91,7 @@ class _cdict_iter(cdict_base):
     def __init__(self, _items: Iterable[Any]) -> None:
         self._items = _items
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[AnyDict, None, None]:
         for d in iter(self._items):
             yield from _iter_values(d)
 
@@ -102,7 +107,7 @@ class _cdict_dict(cdict_base):
         self._item = _item
         self._overridable = overridable
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[AnyDict, None, None]:
         # combinatorially yield
         d = self._item
         ks = list(d.keys())
@@ -120,9 +125,9 @@ class _cdict_apply(cdict_base):
         self._inner = _inner
         self._fn = fn
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[AnyDict, None, None]:
         for x in iter(self._inner):
-            yield from self._fn(x)
+            yield from self._fn(deepcopy(x))
 
     def __repr__(self) -> str:
         return f"{self._inner}.apply({self._fn})"
@@ -135,8 +140,8 @@ class _cdict_product(cdict_base):
         self._item1 = _item1
         self._item2 = _item2
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
-        for (d1, d2) in itertools.product(self._item1, self._item2):
+    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+        for (d1, d2) in itertools.product(self._item1.cdict_iter(), self._item2.cdict_iter()):
             yield d1.cdict_combine(d2)
 
     def __repr__(self) -> str:
@@ -155,8 +160,8 @@ class _cdict_zip(cdict_base):
     def __init__(self, _items: list[cdict_base]) -> None:
         self._items = _items
 
-    def __iter__(self) -> Generator[AnyDict, None, None]:
-        for ds in _safe_zip(*self._items):
+    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+        for ds in _safe_zip(*[it.cdict_iter() for it in self._items]):
             yield _cdict_combinable_dict(_combine_dicts(ds))
 
     def __repr__(self) -> str:
