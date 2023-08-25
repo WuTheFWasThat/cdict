@@ -190,15 +190,8 @@ def test_mut():
     for x, inner in zip(mut, [dict(a=1), dict(a=1, b=1)]):
         assert x['inner'] == inner
 
-    # very weird mutation behavior :(
-    # TODO, fix?
-    for x, inner in zip(mut, [dict(a=1), dict(b=1)]):
-        assert x['inner'] == inner
-        if 'a' in x['inner']:
-            x['inner'].pop('a')
-
-    # mutating after getting the whole list is fine
-    for x, inner in zip(list(mut), [dict(a=1), dict(a=1, b=1)]):
+    # mutating is fine
+    for x, inner in zip(mut, [dict(a=1), dict(a=1, b=1)]):
         assert x['inner'] == inner
         if 'a' in x['inner']:
             x['inner'].pop('a')

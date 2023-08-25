@@ -126,7 +126,7 @@ class _cdict_apply(cdict_base):
         self._fn = fn
 
     def cdict_iter(self) -> Generator[AnyDict, None, None]:
-        for x in iter(self._inner):
+        for x in self._inner.cdict_iter():
             yield from self._fn(deepcopy(x))
 
     def __repr__(self) -> str:
