@@ -174,6 +174,63 @@ def test_map():
     ])
 
 
+def test_list_of_dicts():
+    clist = C.dict(
+        a=C.list(
+            C.dict(a=1, b=2),
+            C.dict(a=2, b=1),
+        ),
+        b=3,
+    )
+    assert_dicts(clist, [
+        dict(a=dict(a=1, b=2), b=3),
+        dict(a=dict(a=2, b=1), b=3),
+    ])
+
+    clist = C.dict(
+        a=C.list(
+            C.dict(a=1, b=2),
+            C.dict(a=2, b=1),
+        ),
+        b=3,
+    ) * C.dict(
+        a=C.list(
+            C.dict(c=3, d=4),
+            C.dict(c=4, d=3),
+        )
+    )
+    assert_dicts(clist, [
+        dict(
+            a=dict(a=1, b=2, c=3, d=4),
+            b=3,
+        ),
+        dict(
+            a=dict(a=1, b=2, c=4, d=3),
+            b=3,
+        ),
+        dict(
+            a=dict(a=2, b=1, c=3, d=4),
+            b=3,
+        ),
+        dict(
+            a=dict(a=2, b=1, c=4, d=3),
+            b=3,
+        ),
+    ])
+
+
+def test_dotkeys():
+    cd = C.dict(
+        **{
+            'a.b': 1,
+            'a.c': 2,
+        }
+    )
+    assert_dicts(cd, [
+        {'a.b': 1, 'a.c': 2},
+    ])
+
+
 def test_overwriting():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
@@ -317,11 +374,13 @@ def test_types():
 if __name__ == "__main__":
     test_multilist()
     test_simple()
+    test_list_of_dicts()
+    test_dotkeys()
     test_overwriting()
     test_map()
     test_nested_times()
     test_or()
-    test_distributive()
-    test_commutative_mult()
+    test_semiring_properties()
+    test_or_distribution_property()
     test_readme_code()
     test_types()
