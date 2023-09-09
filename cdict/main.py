@@ -13,7 +13,7 @@ class cdict_base():
 
     @classmethod
     def finaldict(cls, **kwargs: Any) -> cdict_base:
-        return _cdict_dict(kwargs, overridable=False)
+        return _cdict_dict(kwargs, final=True)
 
     @classmethod
     def iter(cls, it: Any) -> cdict_base:
@@ -103,9 +103,9 @@ class _cdict_iter(cdict_base):
 
 
 class _cdict_dict(cdict_base):
-    def __init__(self, _item: AnyDict, overridable: bool = True) -> None:
+    def __init__(self, _item: AnyDict, final: bool = False) -> None:
         self._item = _item
-        self._overridable = overridable
+        self._final = final
 
     def cdict_iter(self) -> Generator[AnyDict, None, None]:
         # combinatorially yield
@@ -114,7 +114,7 @@ class _cdict_dict(cdict_base):
         for vs in itertools.product(*(_iter_values(d[k]) for k in ks)):
             # NOTE: could do deecopy(v) here to avoid weird issues if user mutates
             d = {k: v for k, v in zip(ks, vs)}
-            yield _cdict_combinable_dict(d) if self._overridable else d
+            yield d if self._final else _cdict_combinable_dict(d)
 
     def __repr__(self) -> str:
         return "cdict(" + ", ".join([f"{k}={v}" for k, v in self._item.items()]) + ")"
