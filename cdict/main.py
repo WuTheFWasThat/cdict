@@ -81,7 +81,7 @@ class _cdict_combinable_dict(AnyDict):
 
 
 def _iter_values(d: Any) -> Generator[Any, None, None]:
-    if isinstance(d, cdict_base):
+    if hasattr(d, "cdict_iter"):
         yield from d.cdict_iter()
     else:
         yield d
