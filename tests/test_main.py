@@ -156,6 +156,9 @@ def test_nested_times():
     ])
 
 def test_defaultdict():
+    s = C.sum(C.overridable(f"a{i}") for i in range(1, 3)) * C.sum(f"b{i}" for i in range(1, 3))
+    assert list(s) == ["b1", "b2", "b1", "b2"]
+
     c0 = C.dict(a=C.defaultdict(a=1, b=1))
     assert_dicts(c0, [dict(a=dict(a=1, b=1))])
 

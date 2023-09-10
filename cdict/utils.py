@@ -13,18 +13,20 @@ class overridable():
 
 
 class combinable():
-    def __init__(self, x: Any, f: Callable[[Any, Any], Any]):
+    def __init__(self, x: Any, f: Callable[[Any, Any], Any], multi: bool = False):
         self.x = x
         self.f = f
+        self.multi = multi
 
     def cdict_combine(self, other: Any) -> Any:
         if hasattr(other, "cdict_item"):
             other = other.cdict_item()
-        return combinable(self.f(self.x, other), self.f)
+        ret = self.f(self.x, other)
+        return combinable(ret, self.f) if self.multi else ret
 
     def cdict_item(self) -> Any:
         return self.x
 
 
-def combiner(f: Callable[[Any, Any], Any]) -> Callable[[Any], combinable]:
-    return lambda x: combinable(x, f)
+def combiner(f: Callable[[Any, Any], Any], multi: bool = True) -> Callable[[Any], combinable]:
+    return lambda x: combinable(x, f, multi)

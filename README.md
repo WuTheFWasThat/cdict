@@ -84,10 +84,32 @@ assert list(sweep_complex_2) == list(sweep_complex)
 # you can actually multiply lists of anything, as long as they implement cdict_combine
 class joinstr(str):
     def cdict_combine(self, other):
-        return joinstr(self + "." + other)
+        return joinstr(f"{self}.{other}")
+
+# nicer utility
+joinstr = C.combiner(lambda x, y: f"{x}.{y}")
 
 s = C.sum(joinstr(f"a{i}") for i in range(1, 3)) * C.sum(joinstr(f"b{i}") for i in range(1, 3))
 assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
+
+# utilities for overridable things
+
+s = C.sum(C.overridable(f"a{i}") for i in range(1, 3)) * C.sum(f"b{i}" for i in range(1, 3))
+assert list(s) == ["b1", "b2", "b1", "b2"]
+
+# dict with entirely overridable things
+defaults = C.defaultdict(a=1, b=1)
+a2 = C.dict(a=2)
+assert list(defaults * a2) == [dict(a=2, b=1)]
+assert list(defaults * defaults * a2) == [dict(a=2, b=1)]
+
+with pytest.raises(ValueError):
+    # defaults don't override
+    list(a2 * defaults)
+
+with pytest.raises(ValueError):
+    # can't override twice
+    list(defaults * a2 * a2)
 
 ###############################################################################
 # Conflicting dict keys
