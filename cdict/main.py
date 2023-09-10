@@ -2,9 +2,35 @@ from __future__ import annotations
 import functools
 from typing import Any, Union, Iterable, Optional, Generator, Tuple, Callable
 import itertools
-from copy import deepcopy
 
 AnyDict = dict[Any, Any]
+
+
+def recursive_map_dict(x: Any, f: Callable[[Any], Any]) -> Any:
+    if isinstance(x, dict):
+        return {k: recursive_map_dict(v, f) for k, v in x.items()}
+    else:
+        return f(x)
+
+
+def recursive_copy_dict(d: Any) -> Any:
+    return recursive_map_dict(d, lambda x: x)
+
+
+def _cdict_items(x: Any) -> Any:
+    return recursive_map_dict(x, lambda x: x.cdict_item() if hasattr(x, "cdict_item") else x)
+
+
+class _cdict_overridable():
+    def __init__(self, x: Any):
+        self.x = x
+
+    def cdict_combine(self, other: Any) -> Any:
+        return other
+
+    def cdict_item(self) -> Any:
+        return self.x
+
 
 class cdict_base():
     @classmethod
@@ -14,6 +40,10 @@ class cdict_base():
     @classmethod
     def finaldict(cls, **kwargs: Any) -> cdict_base:
         return _cdict_dict(kwargs, final=True)
+
+    @classmethod
+    def defaultdict(cls, **kwargs: Any) -> cdict_base:
+        return _cdict_dict({k: _cdict_overridable(v) for k, v in kwargs.items()})
 
     @classmethod
     def iter(cls, it: Any) -> cdict_base:
@@ -56,7 +86,7 @@ class cdict_base():
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
         for x in self.cdict_iter():
-            yield deepcopy(x)
+            yield _cdict_items(x)
 
     def __len__(self) -> int:
         return len(list(iter(self)))
@@ -77,6 +107,8 @@ def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
 
 class _cdict_combinable_dict(AnyDict):
     def cdict_combine(self, other: AnyDict) -> _cdict_combinable_dict:
+        if not isinstance(other, dict):
+            raise ValueError(f"Cannot combine dict with {other}")
         return _cdict_combinable_dict(_combine_dicts([self, other]))
 
 
@@ -127,7 +159,7 @@ class _cdict_apply(cdict_base):
 
     def cdict_iter(self) -> Generator[AnyDict, None, None]:
         for x in self._inner.cdict_iter():
-            yield from self._fn(deepcopy(x))
+            yield from self._fn(_cdict_items(x))
 
     def __repr__(self) -> str:
         return f"{self._inner}.apply({self._fn})"

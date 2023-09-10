@@ -155,6 +155,22 @@ def test_nested_times():
         dict(a=dict(a=2), b=dict(b=2)),
     ])
 
+def test_defaultdict():
+    c0 = C.dict(a=C.defaultdict(a=1, b=1))
+    assert_dicts(c0, [dict(a=dict(a=1, b=1))])
+
+    with pytest.raises(ValueError):
+        list(c0 * C.dict(a=2))
+
+    c1 = c0 * C.dict(a=C.dict(a=2))
+    assert_dicts(c1, [dict(a=dict(a=2, b=1))])
+
+    c2 = c1 * C.dict(a=C.dict(a=3))
+    with pytest.raises(ValueError):
+        list(c2)
+
+    c3 = c1 * C.dict(a=C.dict(b=2))
+    assert_dicts(c3, [dict(a=dict(a=2, b=2))])
 
 def test_map():
     c0 = (C.dict(a=5, b=3) + C.dict(a=6, b=4)) * C.dict(seed=C.list(1, 2))
@@ -400,6 +416,7 @@ if __name__ == "__main__":
     test_list_of_dicts()
     test_dotkeys()
     test_overwriting()
+    test_defaultdict()
     test_map()
     test_mut()
     test_nested_times()
