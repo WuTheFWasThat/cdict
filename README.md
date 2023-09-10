@@ -25,7 +25,7 @@ Other features include:
 
 It can be easier to understand `cdict` by example!
 
-(Though shorter than the examples below, [the codebase](./cdict/main.py) is probably a more arduous read..)
+(Though shorter than the examples below, [the codebase](./cdict/core.py) is probably a more arduous read..)
 
 ```python
 import pytest

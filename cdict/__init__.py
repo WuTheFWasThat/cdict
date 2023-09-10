@@ -1,6 +1,7 @@
 from builtins import sum as builtin_sum
 from typing import Any, Iterable
-from .main import cdict_base, cdict_dict, cdict_iter, cdict_overridable
+from .core import cdict_base, cdict_dict, cdict_iter
+from .utils import overridable
 
 class C():
     @staticmethod
@@ -13,7 +14,7 @@ class C():
 
     @staticmethod
     def defaultdict(**kwargs: Any) -> cdict_base:
-        return cdict_dict({k: cdict_overridable(v) for k, v in kwargs.items()})
+        return cdict_dict({k: overridable(v) for k, v in kwargs.items()})
 
     @staticmethod
     def iter(it: Any) -> cdict_base:
@@ -40,8 +41,7 @@ list = C.list
 clist = C.list
 sum = C.sum
 csum = C.sum
-overridable = cdict_overridable
-coverridable = cdict_overridable
+coverridable = overridable
 
 __all__ = [
     'C',

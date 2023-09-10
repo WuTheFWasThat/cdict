@@ -21,17 +21,6 @@ def _cdict_items(x: Any) -> Any:
     return recursive_map_dict(x, lambda x: x.cdict_item() if hasattr(x, "cdict_item") else x)
 
 
-class cdict_overridable():
-    def __init__(self, x: Any):
-        self.x = x
-
-    def cdict_combine(self, other: Any) -> Any:
-        return other
-
-    def cdict_item(self) -> Any:
-        return self.x
-
-
 class cdict_base():
     def apply(self, fn: Callable[[Any], Any]) -> cdict_base:
         return _cdict_apply(fn, self)
