@@ -1,3 +1,4 @@
+from builtins import sum as builtin_sum
 from typing import Any, Iterable
 from .main import cdict_base, cdict_dict, cdict_iter, cdict_overridable
 
@@ -24,14 +25,14 @@ class C():
 
     @staticmethod
     def sum(args: Iterable[cdict_base]) -> cdict_base:
-        return sum(args, C.list())
+        return builtin_sum(args, C.list())
 
 
-cdict = C.dict
-cfinaldict = C.finaldict
-cdefaultdict = C.defaultdict
-citer = C.iter
-clist = C.list
-csum = C.sum
+dict = C.dict
+finaldict = C.finaldict
+defaultdict = C.defaultdict
+iter = C.iter
+list = C.list
+sum = C.sum
 
-__all__ = ['C', 'cdict', 'cfinaldict', 'cdefaultdict', 'citer', 'clist', 'csum']
+__all__ = ['C', 'dict', 'finaldict', 'defaultdict', 'iter', 'list', 'sum']
