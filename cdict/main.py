@@ -33,29 +33,29 @@ class _cdict_overridable():
 
 
 class cdict_base():
-    @classmethod
-    def dict(cls, **kwargs: Any) -> cdict_base:
+    @staticmethod
+    def dict(**kwargs: Any) -> cdict_base:
         return _cdict_dict(kwargs)
 
-    @classmethod
-    def finaldict(cls, **kwargs: Any) -> cdict_base:
+    @staticmethod
+    def finaldict(**kwargs: Any) -> cdict_base:
         return _cdict_dict(kwargs, final=True)
 
-    @classmethod
-    def defaultdict(cls, **kwargs: Any) -> cdict_base:
+    @staticmethod
+    def defaultdict(**kwargs: Any) -> cdict_base:
         return _cdict_dict({k: _cdict_overridable(v) for k, v in kwargs.items()})
 
-    @classmethod
-    def iter(cls, it: Any) -> cdict_base:
+    @staticmethod
+    def iter(it: Any) -> cdict_base:
         return _cdict_iter(it)
 
-    @classmethod
-    def list(cls, *args: Any) -> cdict_base:
-        return cls.iter(args)
+    @staticmethod
+    def list(*args: Any) -> cdict_base:
+        return cdict_base.iter(args)
 
-    @classmethod
-    def sum(cls, args: Iterable[cdict_base]) -> cdict_base:
-        return sum(args, cls.list())
+    @staticmethod
+    def sum(args: Iterable[cdict_base]) -> cdict_base:
+        return sum(args, cdict_base.list())
 
     def apply(self, fn: Callable[[Any], Any]) -> cdict_base:
         return _cdict_apply(fn, self)
