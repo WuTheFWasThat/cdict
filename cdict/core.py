@@ -15,15 +15,16 @@ def recursive_cdict_item(x: Any) -> Any:
 
 
 class _cdict_value():
-    def __init__(self, d: AnyDict):
+    def __init__(self, d: AnyDict, final: bool = False):
         self.d = d
+        self.final = final
 
     def cdict_combine(self, other: AnyDict) -> _cdict_value:
-        if isinstance(other, _cdict_value):
-            other = other.d
-        if not isinstance(other, dict):
-            raise ValueError(f"Cannot combine with {other}, must be dict")
-        return _cdict_value(_combine_dicts([self.d, other]))
+        if not isinstance(other, _cdict_value):
+            raise ValueError(f"Cannot combine with {other}, must be cdict")
+        if self.final:
+            raise ValueError("Value already finalized")
+        return _cdict_value(_combine_dicts([self.d, other.d]), final=other.final)
 
     def cdict_item(self) -> AnyDict:
         return recursive_cdict_item(self.d) # type: ignore
@@ -33,8 +34,6 @@ class _cdict_value():
 
 
 AnyDict = dict[Any, Any]
-CDictValue = Union[AnyDict, _cdict_value]
-
 
 
 class cdict_base():
@@ -62,7 +61,7 @@ class cdict_base():
     def __or__(self, other: cdict_base) -> cdict_base:
         return _cdict_zip([self, other])
 
-    def cdict_iter(self) -> Generator[CDictValue, None, None]:
+    def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         raise NotImplementedError("Please override this method")
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
@@ -97,7 +96,7 @@ class cdict_iter(cdict_base):
     def __init__(self, _items: Iterable[Any]) -> None:
         self._items = _items
 
-    def cdict_iter(self) -> Generator[CDictValue, None, None]:
+    def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         for d in iter(self._items):
             yield from _iter_values(d)
 
@@ -113,14 +112,13 @@ class cdict_dict(cdict_base):
         self._item = _item
         self._final = final
 
-    def cdict_iter(self) -> Generator[CDictValue, None, None]:
+    def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         # combinatorially yield
         d = self._item
         ks = list(d.keys())
         for vs in itertools.product(*(_iter_values(d[k]) for k in ks)):
-            # NOTE: could do deecopy(v) here to avoid weird issues if user mutates
             d = {k: v for k, v in zip(ks, vs)}
-            yield d if self._final else _cdict_value(d)
+            yield _cdict_value(d, final=self._final)
 
     def __repr__(self) -> str:
         return "cdict(" + ", ".join([f"{k}={v}" for k, v in self._item.items()]) + ")"
@@ -131,9 +129,15 @@ class _cdict_apply(cdict_base):
         self._inner = _inner
         self._fn = fn
 
-    def cdict_iter(self) -> Generator[CDictValue, None, None]:
+    def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         for x in self._inner.cdict_iter():
-            yield from self._fn(recursive_cdict_item(x))
+            # NOTE: currently this has a few oddities
+            # could expose a "raw" version of cdict apply
+            # TODO don't allow apply for finalized items?
+            # also, give user control over what to finalize?
+            # TODO preserve nesting properly?
+            for v in self._fn(recursive_cdict_item(x)):
+                yield _cdict_value(v)
 
     def __repr__(self) -> str:
         return f"{self._inner}.apply({self._fn})"
@@ -146,7 +150,7 @@ class _cdict_product(cdict_base):
         self._item1 = _item1
         self._item2 = _item2
 
-    def cdict_iter(self) -> Generator[CDictValue, None, None]:
+    def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         for (d1, d2) in itertools.product(self._item1.cdict_iter(), self._item2.cdict_iter()):
             yield d1.cdict_combine(d2)
 
@@ -166,7 +170,7 @@ class _cdict_zip(cdict_base):
     def __init__(self, _items: list[cdict_base]) -> None:
         self._items = _items
 
-    def cdict_iter(self) -> Generator[CDictValue, None, None]:
+    def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         for ds in _safe_zip(*[it.cdict_iter() for it in self._items]):
             yield _cdict_value(_combine_dicts(ds))
 

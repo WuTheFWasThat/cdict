@@ -155,6 +155,16 @@ def test_nested_times():
         dict(a=dict(a=2), b=dict(b=2)),
     ])
 
+
+def test_nested_fail():
+    c0 = C.dict(a=C.dict(a=C.list(1, 2)))
+    assert_dicts(c0, [dict(a=dict(a=1)), dict(a=dict(a=2))])
+    c1 = C.dict(a=dict(b=2))
+    assert_dicts(c1, [dict(a=dict(b=2))])
+    with pytest.raises(ValueError):
+        list(c0 * c1)
+
+
 def test_defaultdict():
     s = C.sum(C.overridable(f"a{i}") for i in range(1, 3)) * C.sum(f"b{i}" for i in range(1, 3))
     assert list(s) == ["b1", "b2", "b1", "b2"]
@@ -176,27 +186,26 @@ def test_defaultdict():
     assert_dicts(c3, [dict(a=dict(a=2, b=2))])
 
 def test_map():
-    c0 = (C.dict(a=5, b=3) + C.dict(a=6, b=4)) * C.dict(seed=C.list(1, 2))
+    cbase = C.dict(a=5, b=3) + C.dict(a=6, b=4)
+    seeds = C.dict(seed=C.list(1, 2))
+
     def increment_a(d):
         d['a'] += 1
         return d
-    c1 = c0.map(increment_a)
+
     def aplusb(d):
         d['sum'] = d['a'] + d['b']
         return d
-    csum = c1.map(aplusb)
+
+    c0 = (cbase * seeds).map(increment_a).map(aplusb)
     assert_dicts(c0, [
-        dict(a=5, b=3, seed=1),
-        dict(a=5, b=3, seed=2),
-        dict(a=6, b=4, seed=1),
-        dict(a=6, b=4, seed=2),
-    ])
-    assert_dicts(csum, [
         dict(a=6, b=3, seed=1, sum=9),
         dict(a=6, b=3, seed=2, sum=9),
         dict(a=7, b=4, seed=1, sum=11),
         dict(a=7, b=4, seed=2, sum=11),
     ])
+    c1 = (cbase.map(increment_a).map(aplusb)) * seeds
+    assert_equivalent(c0, c1)
 
 
 def test_mut():
@@ -440,6 +449,7 @@ if __name__ == "__main__":
     test_map()
     test_mut()
     test_nested_times()
+    test_nested_fail()
     test_or()
     test_semiring_properties()
     test_or_distribution_property()
