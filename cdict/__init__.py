@@ -1,7 +1,7 @@
 from builtins import sum as builtin_sum
 from typing import Any, Iterable
 from .core import cdict_base, cdict_dict, cdict_iter
-from .utils import overridable
+from .utils import overridable, combinable, combiner
 
 class C():
     @staticmethod
@@ -28,6 +28,10 @@ class C():
     def sum(args: Iterable[cdict_base]) -> cdict_base:
         return builtin_sum(args, C.list())
 
+    @staticmethod
+    def item(x: Any) -> cdict_base:
+        return C.list(x)
+
 
 dict = C.dict
 cdict = C.dict
@@ -41,7 +45,11 @@ list = C.list
 clist = C.list
 sum = C.sum
 csum = C.sum
+item = C.item
+citem = C.item
 coverridable = overridable
+ccombinable = combinable
+ccombiner = combiner
 
 __all__ = [
     'C',
@@ -57,6 +65,12 @@ __all__ = [
     'clist',
     'sum',
     'csum',
+    'item',
+    'citem',
     'overridable',
     'coverridable',
+    'combinable',
+    'ccombinable',
+    'combiner',
+    'ccombiner',
 ]

@@ -13,11 +13,7 @@ def recursive_map_dict(x: Any, f: Callable[[Any], Any]) -> Any:
         return f(x)
 
 
-def recursive_copy_dict(d: Any) -> Any:
-    return recursive_map_dict(d, lambda x: x)
-
-
-def _cdict_items(x: Any) -> Any:
+def recursive_cdict_item(x: Any) -> Any:
     return recursive_map_dict(x, lambda x: x.cdict_item() if hasattr(x, "cdict_item") else x)
 
 
@@ -51,7 +47,7 @@ class cdict_base():
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
         for x in self.cdict_iter():
-            yield _cdict_items(x)
+            yield recursive_cdict_item(x)
 
     def __len__(self) -> int:
         return len(list(iter(self)))
@@ -124,7 +120,7 @@ class _cdict_apply(cdict_base):
 
     def cdict_iter(self) -> Generator[AnyDict, None, None]:
         for x in self._inner.cdict_iter():
-            yield from self._fn(_cdict_items(x))
+            yield from self._fn(recursive_cdict_item(x))
 
     def __repr__(self) -> str:
         return f"{self._inner}.apply({self._fn})"

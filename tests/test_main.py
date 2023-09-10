@@ -376,6 +376,23 @@ def test_or_distribution_property():
 
 
 
+def test_combiners():
+    class joinstr1(str):
+        def cdict_combine(self, other):
+            return joinstr1(self + "." + other)
+
+    s = C.sum(joinstr1(f"a{i}") for i in range(1, 3)) * C.sum(joinstr1(f"b{i}") for i in range(1, 3))
+    assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
+
+    joinstr2 = C.combiner(lambda a, b: a + "." + b)
+    s = C.sum(joinstr2(f"a{i}") for i in range(1, 3)) * C.sum(joinstr2(f"b{i}") for i in range(1, 3))
+    assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
+
+    joinstr2 = C.combiner(lambda a, b: a + "." + b)
+    s = C.sum(joinstr2(f"a{i}") for i in range(1, 3)) * C.sum(f"b{i}" for i in range(1, 3)) * C.item(f"c0")
+    assert list(s) == ["a1.b1.c0", "a1.b2.c0", "a2.b1.c0", "a2.b2.c0"]
+
+
 def test_readme_code():
     readme_file = os.path.join(os.path.dirname(__file__), '..', 'README.md')
     with open(readme_file) as f:
@@ -423,5 +440,6 @@ if __name__ == "__main__":
     test_or()
     test_semiring_properties()
     test_or_distribution_property()
+    test_combiners()
     test_readme_code()
     test_types()
