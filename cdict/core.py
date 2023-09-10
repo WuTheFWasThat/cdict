@@ -1,10 +1,7 @@
 from __future__ import annotations
 import functools
-from typing import Any, Union, Iterable, Optional, Generator, Tuple, Callable
+from typing import Any, Union, Iterable, Optional, Generator, Tuple, Callable, ItemsView
 import itertools
-
-AnyDict = dict[Any, Any]
-
 
 def recursive_map_dict(x: Any, f: Callable[[Any], Any]) -> Any:
     if isinstance(x, dict):
@@ -15,6 +12,29 @@ def recursive_map_dict(x: Any, f: Callable[[Any], Any]) -> Any:
 
 def recursive_cdict_item(x: Any) -> Any:
     return recursive_map_dict(x, lambda x: x.cdict_item() if hasattr(x, "cdict_item") else x)
+
+
+class _cdict_value():
+    def __init__(self, d: AnyDict):
+        self.d = d
+
+    def cdict_combine(self, other: AnyDict) -> _cdict_value:
+        if isinstance(other, _cdict_value):
+            other = other.d
+        if not isinstance(other, dict):
+            raise ValueError(f"Cannot combine with {other}, must be dict")
+        return _cdict_value(_combine_dicts([self.d, other]))
+
+    def cdict_item(self) -> AnyDict:
+        return recursive_cdict_item(self.d) # type: ignore
+
+    def items(self) -> ItemsView[Any, Any]:
+        return self.d.items()
+
+
+AnyDict = dict[Any, Any]
+CDictValue = Union[AnyDict, _cdict_value]
+
 
 
 class cdict_base():
@@ -42,7 +62,7 @@ class cdict_base():
     def __or__(self, other: cdict_base) -> cdict_base:
         return _cdict_zip([self, other])
 
-    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[CDictValue, None, None]:
         raise NotImplementedError("Please override this method")
 
     def __iter__(self) -> Generator[AnyDict, None, None]:
@@ -66,13 +86,6 @@ def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
     return res
 
 
-class _cdict_combinable_dict(AnyDict):
-    def cdict_combine(self, other: AnyDict) -> _cdict_combinable_dict:
-        if not isinstance(other, dict):
-            raise ValueError(f"Cannot combine dict with {other}")
-        return _cdict_combinable_dict(_combine_dicts([self, other]))
-
-
 def _iter_values(d: Any) -> Generator[Any, None, None]:
     if hasattr(d, "cdict_iter"):
         yield from d.cdict_iter()
@@ -84,7 +97,7 @@ class cdict_iter(cdict_base):
     def __init__(self, _items: Iterable[Any]) -> None:
         self._items = _items
 
-    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[CDictValue, None, None]:
         for d in iter(self._items):
             yield from _iter_values(d)
 
@@ -100,14 +113,14 @@ class cdict_dict(cdict_base):
         self._item = _item
         self._final = final
 
-    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[CDictValue, None, None]:
         # combinatorially yield
         d = self._item
         ks = list(d.keys())
         for vs in itertools.product(*(_iter_values(d[k]) for k in ks)):
             # NOTE: could do deecopy(v) here to avoid weird issues if user mutates
             d = {k: v for k, v in zip(ks, vs)}
-            yield d if self._final else _cdict_combinable_dict(d)
+            yield d if self._final else _cdict_value(d)
 
     def __repr__(self) -> str:
         return "cdict(" + ", ".join([f"{k}={v}" for k, v in self._item.items()]) + ")"
@@ -118,7 +131,7 @@ class _cdict_apply(cdict_base):
         self._inner = _inner
         self._fn = fn
 
-    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[CDictValue, None, None]:
         for x in self._inner.cdict_iter():
             yield from self._fn(recursive_cdict_item(x))
 
@@ -133,7 +146,7 @@ class _cdict_product(cdict_base):
         self._item1 = _item1
         self._item2 = _item2
 
-    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[CDictValue, None, None]:
         for (d1, d2) in itertools.product(self._item1.cdict_iter(), self._item2.cdict_iter()):
             yield d1.cdict_combine(d2)
 
@@ -153,9 +166,9 @@ class _cdict_zip(cdict_base):
     def __init__(self, _items: list[cdict_base]) -> None:
         self._items = _items
 
-    def cdict_iter(self) -> Generator[AnyDict, None, None]:
+    def cdict_iter(self) -> Generator[CDictValue, None, None]:
         for ds in _safe_zip(*[it.cdict_iter() for it in self._items]):
-            yield _cdict_combinable_dict(_combine_dicts(ds))
+            yield _cdict_value(_combine_dicts(ds))
 
     def __repr__(self) -> str:
         return " | ".join([str(d) for d in self._items])
