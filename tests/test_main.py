@@ -5,7 +5,7 @@ import os
 import traceback
 import sys
 
-from cdict import C
+import cdict as C
 import mypy.api
 
 

@@ -29,9 +29,7 @@ It can be easier to understand `cdict` by example!
 
 ```python
 import pytest
-from cdict import C
-# NOTE: you can also instead do
-# from cdict import cdict, citer, clist, csum, cfinaldict
+import cdict as C
 
 ###############################################################################
 # The basics

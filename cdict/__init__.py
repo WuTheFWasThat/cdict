@@ -29,10 +29,34 @@ class C():
 
 
 dict = C.dict
+cdict = C.dict
 finaldict = C.finaldict
+cfinaldict = C.finaldict
 defaultdict = C.defaultdict
+cdefaultdict = C.defaultdict
 iter = C.iter
+citer = C.iter
 list = C.list
+clist = C.list
 sum = C.sum
+csum = C.sum
+overridable = cdict_overridable
+coverridable = cdict_overridable
 
-__all__ = ['C', 'dict', 'finaldict', 'defaultdict', 'iter', 'list', 'sum']
+__all__ = [
+    'C',
+    'dict',
+    'cdict',
+    'finaldict',
+    'cfinaldict',
+    'defaultdict',
+    'cdefaultdict',
+    'iter',
+    'citer',
+    'list',
+    'clist',
+    'sum',
+    'csum',
+    'overridable',
+    'coverridable',
+]
