@@ -21,7 +21,7 @@ def _cdict_items(x: Any) -> Any:
     return recursive_map_dict(x, lambda x: x.cdict_item() if hasattr(x, "cdict_item") else x)
 
 
-class _cdict_overridable():
+class cdict_overridable():
     def __init__(self, x: Any):
         self.x = x
 
@@ -33,30 +33,6 @@ class _cdict_overridable():
 
 
 class cdict_base():
-    @staticmethod
-    def dict(**kwargs: Any) -> cdict_base:
-        return _cdict_dict(kwargs)
-
-    @staticmethod
-    def finaldict(**kwargs: Any) -> cdict_base:
-        return _cdict_dict(kwargs, final=True)
-
-    @staticmethod
-    def defaultdict(**kwargs: Any) -> cdict_base:
-        return _cdict_dict({k: _cdict_overridable(v) for k, v in kwargs.items()})
-
-    @staticmethod
-    def iter(it: Any) -> cdict_base:
-        return _cdict_iter(it)
-
-    @staticmethod
-    def list(*args: Any) -> cdict_base:
-        return cdict_base.iter(args)
-
-    @staticmethod
-    def sum(args: Iterable[cdict_base]) -> cdict_base:
-        return sum(args, cdict_base.list())
-
     def apply(self, fn: Callable[[Any], Any]) -> cdict_base:
         return _cdict_apply(fn, self)
 
@@ -73,7 +49,7 @@ class cdict_base():
         return _cdict_apply(apply_fn, self)
 
     def __add__(self, other: cdict_base) -> cdict_base:
-        return _cdict_iter([self, other])
+        return cdict_iter([self, other])
 
     def __mul__(self, other: cdict_base) -> cdict_base:
         return _cdict_product(self, other)
@@ -119,7 +95,7 @@ def _iter_values(d: Any) -> Generator[Any, None, None]:
         yield d
 
 
-class _cdict_iter(cdict_base):
+class cdict_iter(cdict_base):
     def __init__(self, _items: Iterable[Any]) -> None:
         self._items = _items
 
@@ -134,7 +110,7 @@ class _cdict_iter(cdict_base):
             return "citer(" + str(self._items) + ")"
 
 
-class _cdict_dict(cdict_base):
+class cdict_dict(cdict_base):
     def __init__(self, _item: AnyDict, final: bool = False) -> None:
         self._item = _item
         self._final = final
