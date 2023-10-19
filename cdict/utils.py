@@ -22,7 +22,7 @@ class combinable():
         if hasattr(other, "cdict_item"):
             other = other.cdict_item()
         ret = self.f(self.x, other)
-        return combinable(ret, self.f) if self.multi else ret
+        return combinable(ret, self.f, multi=True) if self.multi else ret
 
     def cdict_item(self) -> Any:
         return self.x

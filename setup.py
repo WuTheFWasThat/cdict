@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name="cdict",
     packages=["cdict"],
-    version="2.1.0",
+    version="2.1.1",
     author="Jeffrey Wu",
     install_requires=[
     ],

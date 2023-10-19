@@ -315,7 +315,6 @@ def test_overwriting():
         dict(a=7, b=3, c=4, d=5),
     ])
 
-
 def test_or():
     c0 = C.dict(a=5, b=3)
     c1 = C.dict(a=6, c=4)
@@ -403,6 +402,45 @@ def test_combiners():
     joinstr2 = C.combiner(lambda a, b: a + "." + b)
     s = C.sum(joinstr2(f"a{i}") for i in range(1, 3)) * C.sum(f"b{i}" for i in range(1, 3)) * C.item(f"c0")
     assert list(s) == ["a1.b1.c0", "a1.b2.c0", "a2.b1.c0", "a2.b2.c0"]
+
+
+    ExperimentLabel = C.combiner(lambda s1, s2: f"{s1}/{s2}")
+
+    def Label(l):
+        return C.dict(
+            job=C.dict(label=ExperimentLabel(l))
+        )
+
+    sweep = C.sum(
+        C.dict(a=a) * Label(f"a{a}") for a in [0, 1]
+    ) * C.sum(
+        C.dict(b=b) * Label(f"b{b}") for b in [0, 1]
+    ) * C.sum(
+        C.dict(c=c) * Label(f"c{c}") for c in [0, 1]
+    ) * C.sum(
+        C.dict(d=d) * Label(f"d{d}") for d in [0, 1]
+    )
+
+    assert_dicts(sweep, [
+        dict(a=0, b=0, c=0, d=0, job=dict(label="a0/b0/c0/d0")),
+        dict(a=0, b=0, c=0, d=1, job=dict(label="a0/b0/c0/d1")),
+        dict(a=0, b=0, c=1, d=0, job=dict(label="a0/b0/c1/d0")),
+        dict(a=0, b=0, c=1, d=1, job=dict(label="a0/b0/c1/d1")),
+        dict(a=0, b=1, c=0, d=0, job=dict(label="a0/b1/c0/d0")),
+        dict(a=0, b=1, c=0, d=1, job=dict(label="a0/b1/c0/d1")),
+        dict(a=0, b=1, c=1, d=0, job=dict(label="a0/b1/c1/d0")),
+        dict(a=0, b=1, c=1, d=1, job=dict(label="a0/b1/c1/d1")),
+        dict(a=1, b=0, c=0, d=0, job=dict(label="a1/b0/c0/d0")),
+        dict(a=1, b=0, c=0, d=1, job=dict(label="a1/b0/c0/d1")),
+        dict(a=1, b=0, c=1, d=0, job=dict(label="a1/b0/c1/d0")),
+        dict(a=1, b=0, c=1, d=1, job=dict(label="a1/b0/c1/d1")),
+        dict(a=1, b=1, c=0, d=0, job=dict(label="a1/b1/c0/d0")),
+        dict(a=1, b=1, c=0, d=1, job=dict(label="a1/b1/c0/d1")),
+        dict(a=1, b=1, c=1, d=0, job=dict(label="a1/b1/c1/d0")),
+        dict(a=1, b=1, c=1, d=1, job=dict(label="a1/b1/c1/d1")),
+    ])
+
+
 
 
 def test_readme_code():

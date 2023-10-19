@@ -78,26 +78,60 @@ sweep_complex_2 = sweep_a * sweep_b + sweep_z * sweep_b + baseline
 assert list(sweep_complex_2) == list(sweep_complex)
 
 ###############################################################################
-# cdict_combine
+# Overridable and combinable values
 ###############################################################################
 
-# you can actually multiply lists of anything, as long as they implement cdict_combine
+# conflicting keys errors by default
+a1 = C.dict(a=1)
+a2 = C.dict(a=2)
+with pytest.raises(ValueError):
+    list(a1 * a2)
+
+# you can use overridable to change this behavior
+a1 = C.dict(a=C.overridable(1))
+a2 = C.dict(a=2)
+assert list(a1 * a2) == [dict(a=2)]
+
+with pytest.raises(ValueError):
+    # order matters - a2 isn't overridable
+    list(a2 * a1)
+
+# overridable is just one special case of combining conflicting keys
+joinstr = C.combiner(lambda x, y: f"{x}.{y}")
+
+s1 = C.sum(C.dict(a=a, uid=joinstr(f"a{a}")) for a in [1, 2])
+s2 = C.sum(C.dict(b=b, uid=joinstr(f"b{b}")) for b in [1, 2])
+assert list(s1 * s2) == [
+    dict(a=1, b=1, uid="a1.b1"),
+    dict(a=1, b=2, uid="a1.b2"),
+    dict(a=2, b=1, uid="a2.b1"),
+    dict(a=2, b=2, uid="a2.b2"),
+]
+
+# Under the hood, override and combiner work by cdict_combine lets you override that behavior!
+# You can actually multiply lists of anything, as long as they implement cdict_combine.
+# Here's a more explicit implementation of joinstr
 class joinstr(str):
     def cdict_combine(self, other):
         return joinstr(f"{self}.{other}")
 
-# nicer utility
-joinstr = C.combiner(lambda x, y: f"{x}.{y}")
+s = C.sum(joinstr(f"a{i}") for i in range(1, 3)) * C.sum(joinstr(f"b{i}") for i in range(1, 3))
+assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
+
+# Yet another implementation that doesn't subclass string
+# cdict_item lets you control what cdict iteration yields
+class joinstr():
+    def __init__(self, s: str):
+        self.s = s
+    def cdict_combine(self, other):
+        return joinstr(f"{self.s}.{other.s}")
+    def cdict_item(self):
+        return self.s
 
 s = C.sum(joinstr(f"a{i}") for i in range(1, 3)) * C.sum(joinstr(f"b{i}") for i in range(1, 3))
 assert list(s) == ["a1.b1", "a1.b2", "a2.b1", "a2.b2"]
 
-# utilities for overridable things
-
-s = C.sum(C.overridable(f"a{i}") for i in range(1, 3)) * C.sum(f"b{i}" for i in range(1, 3))
-assert list(s) == ["b1", "b2", "b1", "b2"]
-
-# dict with entirely overridable things
+# C.defaultdict also provides a convenience for having everything be overridable
 defaults = C.defaultdict(a=1, b=1)
 a2 = C.dict(a=2)
 assert list(defaults * a2) == [dict(a=2, b=1)]
@@ -110,26 +144,6 @@ with pytest.raises(ValueError):
 with pytest.raises(ValueError):
     # can't override twice
     list(defaults * a2 * a2)
-
-###############################################################################
-# Conflicting dict keys
-###############################################################################
-
-# conflicting keys errors by default
-s1 = C.sum(C.dict(a=a, uid=f"a{a}") for a in [1, 2])
-s2 = C.sum(C.dict(b=b, uid=f"b{b}") for b in [1, 2])
-with pytest.raises(ValueError):
-    list(s1 * s2)
-
-# implementing a cdict_combine lets you override that behavior!
-s1 = C.sum(C.dict(a=a, uid=joinstr(f"a{a}")) for a in [1, 2])
-s2 = C.sum(C.dict(b=b, uid=joinstr(f"b{b}")) for b in [1, 2])
-assert list(s1 * s2) == [
-    dict(a=1, b=1, uid="a1.b1"),
-    dict(a=1, b=2, uid="a1.b2"),
-    dict(a=2, b=1, uid="a2.b1"),
-    dict(a=2, b=2, uid="a2.b2"),
-]
 
 ###############################################################################
 # Nesting, basics
@@ -168,7 +182,7 @@ assert list(sweep_concise) == [
 # Nesting and conflicts
 ###############################################################################
 
-# you can multiply within nesting (under the hood, because cdict items implement cdict_combine by default!)
+# you can multiply within nesting (under the hood, because cdicts' items implement cdict_combine by default!)
 nested_sweep = (
     C.dict(nested=C.dict(a=C.list(1, 2))) *
     C.dict(nested=C.dict(b=C.list(1, 2)))
