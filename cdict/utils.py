@@ -12,6 +12,17 @@ class overridable():
         return self.x
 
 
+class override():
+    def __init__(self, x: Any):
+        self.x = x
+
+    def cdict_rcombine(self, other: Any) -> Any:
+        return self
+
+    def cdict_item(self) -> Any:
+        return self.x
+
+
 class combinable():
     def __init__(self, x: Any, f: Callable[[Any, Any], Any], multi: bool = False):
         self.x = x

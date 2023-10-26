@@ -185,6 +185,21 @@ def test_defaultdict():
     c3 = c1 * C.dict(a=C.dict(b=2))
     assert_dicts(c3, [dict(a=dict(a=2, b=2))])
 
+def test_override():
+    with pytest.raises(ValueError):
+        list(C.dict(a=3) * C.dict(a=2))
+
+    assert_dicts(C.dict(a=3) * C.dict(a=C.override(2)), [dict(a=2)])
+
+    with pytest.raises(ValueError):
+        assert_dicts(C.dict(a=C.override(2)) * C.dict(a=4), [dict(a=2)])
+
+    with pytest.raises(ValueError):
+        assert_dicts(C.dict(a=3) * C.dict(a=C.override(C.overridable(2))) * C.dict(a=4), [dict(a=4)])
+
+    with pytest.raises(ValueError):
+        assert_dicts(C.dict(a=3) * C.dict(a=C.overridable(C.override(2))) * C.dict(a=4), [dict(a=4)])
+
 def test_map():
     cbase = C.dict(a=5, b=3) + C.dict(a=6, b=4)
     seeds = C.dict(seed=C.list(1, 2))
