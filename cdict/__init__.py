@@ -48,6 +48,7 @@ csum = C.sum
 item = C.item
 citem = C.item
 coverridable = overridable
+coverride = override
 ccombinable = combinable
 ccombiner = combiner
 
@@ -69,6 +70,8 @@ __all__ = [
     'citem',
     'overridable',
     'coverridable',
+    'override',
+    'coverride',
     'combinable',
     'ccombinable',
     'combiner',
