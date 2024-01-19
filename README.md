@@ -1,6 +1,6 @@
 # cdict
 
-This is a small library for creating lists of dictionaries combinatorially, for config/hyperparameter sweep management.
+This is a small library for creating iterators of dictionaries combinatorially, for config/hyperparameter sweep management.
 
 ## Installation
 
@@ -10,34 +10,19 @@ This is a small library for creating lists of dictionaries combinatorially, for 
 
 ### Basic features and primitives
 
-The basic unit in `cdict` is essentially a list of dictionaries.  We then have two main operations:
+The basic unit in `cdict` is essentially a stream of dictionaries (`Iterable[dict]`).  We then have two main operations:
+<ul>
+    <li>
 
-- `a + b` concatenates (includes items in list `a` and list `b`)
-- `a * b` does an outer product (includes items formed by combining all pairs of items from list `a` and list `b`)
+`x + y` concatenates (includes dictionaries in `x` and then dictionaries in `y`), much like list addition
 
-Other features include:
-- nesting of `cdict`s
-- customizable combining behavior, gives user control over conflict resolution
-- transforms of `cdict`s
-- `|` which does a zip/elementwise product of lists of equal length
-
-### Examples
-
-It can be easier to understand `cdict` by example!
-
-(Though shorter than the examples below, [the codebase](./cdict/core.py) is probably a more arduous read..)
+<details><summary>Example</summary>
 
 ```python
-import pytest
 import cdict as C
 
-###############################################################################
-# The basics
-###############################################################################
-
-# create very simple values
+# setup
 a1 = C.dict(a=1)
-# cdicts always represent a list of dictionaries
 assert list(a1) == [dict(a=1)]
 a2 = C.dict(a=2)
 assert list(a2) == [dict(a=2)]
@@ -47,7 +32,30 @@ sweep_a = a1 + a2
 assert list(sweep_a) == [dict(a=1), dict(a=2)]
 
 # equivalent way to add
-sweep_b = C.sum(C.dict(b=b) for b in [1,2])
+sweep_a = C.sum(C.dict(a=a) for a in [1,2])
+assert list(sweep_a) == [dict(a=1), dict(a=2)]
+
+# a convenience
+sweep_a = C.dict(a=C.list(1, 2))
+assert list(sweep_a) == [dict(a=1), dict(a=2)]
+```
+
+</details>
+</li>
+
+<li>
+
+`x * y` does an outer product (includes dictionaries formed by *combining* all pairs of dictionaries from `x` and `y`)
+
+<details><summary>Example</summary>
+
+```python
+import cdict as C
+
+# setup
+sweep_a = C.dict(a=C.list(1, 2))
+assert list(sweep_a) == [dict(a=1), dict(a=2)]
+sweep_b = C.dict(b=C.list(1,2))
 assert list(sweep_b) == [dict(b=1), dict(b=2)]
 
 # "multiply" cdicts by combinatorially combining all possibilities
@@ -57,9 +65,33 @@ assert list(sweep_ab) == [
     dict(a=2, b=1), dict(a=2, b=2),
 ]
 
-###############################################################################
-# Composing building blocks
-###############################################################################
+# a convenience
+sweep_ab = C.dict(
+    a=C.list(1, 2),
+    b=C.list(1, 2),
+)
+assert list(sweep_ab) == [
+    dict(a=1, b=1), dict(a=1, b=2),
+    dict(a=2, b=1), dict(a=2, b=2),
+]
+```
+
+</details>
+</li>
+
+</ul>
+
+These two basic operations can be composed arbitrarily, and behave as you would expect!
+
+<details><summary>Example</summary>
+
+```python
+import cdict as C
+
+sweep_a = C.dict(a=C.list(1, 2))
+assert list(sweep_a) == [dict(a=1), dict(a=2)]
+sweep_b = C.dict(b=C.list(1,2))
+assert list(sweep_b) == [dict(b=1), dict(b=2)]
 
 # add and multiply all you want
 baseline = dict(a=0, b=0)
@@ -76,10 +108,41 @@ assert list(sweep_complex) == [
 # equivalent, thanks to left-distributive property
 sweep_complex_2 = sweep_a * sweep_b + sweep_z * sweep_b + baseline
 assert list(sweep_complex_2) == list(sweep_complex)
+```
 
-###############################################################################
-# Overridable and combinable values
-###############################################################################
+</details>
+
+Note that `cdict`s are lazy.
+
+<details><summary>Example</summary>
+
+```python
+import cdict as C
+
+# avoid lists if needed, for memory efficiency
+sweep_lazy = C.dict(a=C.iter(range(1, 3)), b=C.iter(range(1, 3)))
+it = iter(sweep_lazy)
+assert next(it) == dict(a=1, b=1)
+assert next(it) == dict(a=1, b=2)
+assert next(it) == dict(a=2, b=1)
+assert next(it) == dict(a=2, b=2)
+```
+
+</details>
+
+
+Other features include:
+
+<ul>
+    <li>
+
+customizable combining behavior, gives user control over conflict resolution (allowing vs disallow override)
+
+<details><summary>Example</summary>
+
+```python
+import pytest
+import cdict as C
 
 # conflicting keys errors by default
 a1 = C.dict(a=1)
@@ -144,6 +207,20 @@ with pytest.raises(ValueError):
 with pytest.raises(ValueError):
     # can't override twice
     list(defaults * a2 * a2)
+```
+
+</details>
+</li>
+
+<li>
+
+nesting of `cdict`s
+
+<details><summary>Example</summary>
+
+```python
+import pytest
+import cdict as C
 
 ###############################################################################
 # Nesting, basics
@@ -151,7 +228,10 @@ with pytest.raises(ValueError):
 
 # You can nest cdicts, to get lists of nested dicts.
 # This is useful if you have nested configuration
-sweep_nested = C.dict(nested_a=sweep_a, nested_b=sweep_b)
+sweep_nested = C.dict(
+    nested_a=C.dict(a=1) + C.dict(a=2),
+    nested_b=C.dict(b=1) + C.dict(b=2),
+)
 assert list(sweep_nested) == [
     dict(nested_a=dict(a=1), nested_b=dict(b=1)),
     dict(nested_a=dict(a=1), nested_b=dict(b=2)),
@@ -160,20 +240,26 @@ assert list(sweep_nested) == [
 ]
 
 # Multiplying nested cdicts acts as expected
-sweep_nested_2 = C.dict(nested_a=sweep_a) * C.dict(nested_b=sweep_b)
+sweep_nested_2 = C.dict(
+    nested_a=C.dict(a=1) + C.dict(a=2),
+) * C.dict(
+    nested_b=C.dict(b=1) + C.dict(b=2),
+)
 assert list(sweep_nested_2) == list(sweep_nested)
 
 ###############################################################################
 # Nesting convenience syntax
 ###############################################################################
 
-# "nested" way to add
+# "nested" syntax for adding
 sweep_a = C.dict(a=C.list(1,2))
 assert list(sweep_a) == [dict(a=1), dict(a=2)]
+sweep_b = C.dict(b=C.list(1,2))
+assert list(sweep_b) == [dict(b=1), dict(b=2)]
 
 # "nested" multiply
-sweep_concise = C.dict(a=C.list(1, 2), b=C.list(1, 2))
-assert list(sweep_concise) == [
+sweep_ab = C.dict(a=C.list(1, 2), b=C.list(1, 2))
+assert list(sweep_ab) == [
     dict(a=1, b=1), dict(a=1, b=2),
     dict(a=2, b=1), dict(a=2, b=2),
 ]
@@ -221,23 +307,25 @@ nested_sweep_nonconflict = (
 )
 assert list(nested_sweep_nonconflict) == list(sweep_nested)
 
-###############################################################################
-# Everything can be lazy
-###############################################################################
+```
 
-# avoid lists if needed, for memory efficiency
-sweep_lazy = C.dict(a=C.iter(range(1, 3)), b=C.iter(range(1, 3)))
-it = iter(sweep_lazy)
-assert next(it) == dict(a=1, b=1)
-assert next(it) == dict(a=1, b=2)
-assert next(it) == dict(a=2, b=1)
-assert next(it) == dict(a=2, b=2)
+</details>
+</li>
 
-###############################################################################
-# Everything can be transformed (mapped/filtered/etc)
-###############################################################################
+<li>
 
-# and transform with map
+transforms
+
+<details><summary>Example</summary>
+
+```python
+import cdict as C
+
+sweep_ab = C.dict(
+    a=C.list(1, 2), b=C.list(1, 2),
+)
+
+# transform with map
 def square_a(x):
     x['aa'] = x['a']**2
     return x
@@ -269,22 +357,47 @@ assert list(sweep_squares_filtered_seeded) == [
     dict(aab=4, seed=210), dict(aab=4, seed=211),
     dict(aab=8, seed=220), dict(aab=8, seed=221),
 ]
+```
 
-###############################################################################
-# Zipping
-###############################################################################
+</details>
+</li>
+
+<li>
+
+a "zip" operation `|` which does an elementwise product of `cdict`s of equal length
+
+
+<details><summary>Example</summary>
+
+```python
+import pytest
+import cdict as C
+
+sweep_a = C.dict(a=C.list(1, 2))
+assert list(sweep_a) == [dict(a=1), dict(a=2)]
+sweep_b = C.dict(b=C.list(1,2))
+assert list(sweep_b) == [dict(b=1), dict(b=2)]
 
 # zipping of equal length things
 diag_sweep = sweep_a | sweep_b
 assert list(diag_sweep) == [
     dict(a=1, b=1), dict(a=2, b=2),
 ]
-
 ```
+
+</details>
+</li>
+
+</ul>
+
 
 ### Properties
 
-`cdict` combinators have some nice properties:
+`cdict` combinators have some nice properties, including essentially everything you would expect given the `+` and `*` syntax.
+
+For math nerds: they more or less form a commutative semiring with `0 = C.list()` and `1 = C.dict()`!
+
+To be precise:
 
 - `+` is associative
 - `*` is associative if 1
@@ -300,7 +413,6 @@ Where
 1. *if values implement `cdict_combine` satisfying the same property, at any/all conflicting keys*
 2. *if ignoring order of the resulting yielded items*
 
-We get essentially every property one would expect given the `+` and `*` syntax.  In fact, they form a commutative semiring with `0 = C.list()` and `1 = C.dict()`!
 
 ## Tests
 

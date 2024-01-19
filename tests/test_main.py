@@ -462,19 +462,20 @@ def test_readme_code():
     readme_file = os.path.join(os.path.dirname(__file__), '..', 'README.md')
     with open(readme_file) as f:
         text = f.read()
-    m = re.search('```(.+?)```', text, flags=re.DOTALL)
-    assert m
-    code = m.group(1)
-    assert code.startswith('python')
-    code = code[6:].strip()
-    try:
-        exec(code, globals(), globals())
-    except Exception as err:
-        error_class = err.__class__.__name__
-        detail = err.args[0] if len(err.args) else ""
-        cl, exc, tb = sys.exc_info()
-        line_number = traceback.extract_tb(tb)[-1][1]
-        raise Exception(f'Error in README.md line {line_number}: {error_class} {detail}')
+    blocks = re.findall('```(.+?)```', text, flags=re.DOTALL)
+    assert len(blocks) > 0
+    for code in blocks:
+        assert code.startswith('python')
+        code = code[6:].strip()
+        env = globals().copy()
+        try:
+            exec(code, env, env)
+        except Exception as err:
+            error_class = err.__class__.__name__
+            detail = err.args[0] if len(err.args) else ""
+            cl, exc, tb = sys.exc_info()
+            line_number = traceback.extract_tb(tb)[-1][1]
+            raise Exception(f'Error in README.md line {line_number}: {error_class} {detail}\n\n{code}') from None
 
 
 def test_types():
