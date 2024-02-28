@@ -395,8 +395,6 @@ assert list(diag_sweep) == [
 
 `cdict` combinators have some nice properties, including essentially everything you would expect given the `+` and `*` syntax.
 
-For math nerds: they more or less form a commutative semiring with `0 = C.list()` and `1 = C.dict()`!
-
 To be precise:
 
 - `+` is associative
@@ -404,15 +402,19 @@ To be precise:
 - `+` is commutative if 2
 - `*` is commutative if 1 and 2
 - `*` is left-distributive over `+`, and right-distributive if 2
+
+Where:
+1. *if values implement `cdict_combine` satisfying the same property, at any/all conflicting keys*
+2. *if ignoring order of the resulting yielded items*
+
+For math nerds: assuming these two things, they form a commutative semiring with `0 = C.list()` and `1 = C.dict()`!
+
+We also have properties of `|`:
+
 - `|` is associative if 1
 - `|` is commutative if 1
 - `(a + b) | (c + d) = (a | c) + (b | d)` if `len(a) == len(c)`
 - `(a * b) | (c * d) = (a | c) * (b | d)` if `len(a) == len(c)` and `len(b) == len(d)` and `cdict_combine` is associative and commutative 
-
-Where
-1. *if values implement `cdict_combine` satisfying the same property, at any/all conflicting keys*
-2. *if ignoring order of the resulting yielded items*
-
 
 ## Tests
 
