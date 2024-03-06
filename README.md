@@ -94,7 +94,7 @@ sweep_b = C.dict(b=C.list(1,2))
 assert list(sweep_b) == [dict(b=1), dict(b=2)]
 
 # add and multiply all you want
-baseline = dict(a=0, b=0)
+baseline = C.dict(a=0, b=0)
 sweep_z = C.dict(z=1) + C.dict(z=2)
 sweep_complex = (sweep_a + sweep_z) * sweep_b + baseline
 assert list(sweep_complex) == [

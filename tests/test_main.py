@@ -222,6 +222,52 @@ def test_map():
     c1 = (cbase.map(increment_a).map(aplusb)) * seeds
     assert_equivalent(c0, c1)
 
+    c2 = c1.filter(lambda x: x['sum'] > 10)
+    assert_dicts(c2, [
+        dict(a=7, b=4, seed=1, sum=11),
+        dict(a=7, b=4, seed=2, sum=11),
+    ])
+
+
+def test_apply():
+    cbase = C.dict(a=5, b=3) + C.dict(a=6, b=4)
+    seeds = C.dict(seed=C.list(1, 2))
+
+    c0 = cbase.apply(lambda x: [x | dict(seed=1), x | dict(seed=2)])
+    assert_dicts(c0, cbase * seeds)
+
+    c0_raw = cbase.apply(lambda x: [x | dict(seed=1), x | dict(seed=2)], raw=True)
+    assert_dicts(c0_raw, cbase * seeds)
+
+    c1 = cbase.apply(lambda x: [dict(**x, seed=1), dict(**x, seed=2)])
+    assert_dicts(c1, cbase * seeds)
+
+    c2 = cbase.apply(lambda x: [dict(seed=1) | x, dict(seed=2) | x])
+    assert_dicts(c2, cbase * seeds)
+
+    with pytest.raises(TypeError):
+        c1_bad = cbase.apply(lambda x: [dict(**x, seed=1), dict(**x, seed=2)], raw=True)
+        assert_dicts(c1_bad, cbase * seeds)
+
+    with pytest.raises(TypeError):
+        c2_bad = cbase.apply(lambda x: [dict(seed=1) | x, dict(seed=2 | x)], raw=True)
+        assert_dicts(c2_bad, cbase * seeds)
+
+    with pytest.raises(TypeError):
+        cmul = cbase.apply(
+            lambda x: x * seeds,
+        )
+        assert_dicts(cmul, cbase * seeds)
+
+    cmul = cbase.apply(
+        lambda x: x * seeds, raw=True
+    )
+    assert_dicts(cmul, cbase * seeds)
+
+    cmul = cbase.apply(
+        lambda x: seeds * x, raw=True
+    )
+    assert_dicts(cmul, cbase * seeds)
 
 def test_mut():
     mut = C.dict(
@@ -501,6 +547,7 @@ if __name__ == "__main__":
     test_overwriting()
     test_defaultdict()
     test_map()
+    test_apply()
     test_mut()
     test_nested_times()
     test_nested_fail()
