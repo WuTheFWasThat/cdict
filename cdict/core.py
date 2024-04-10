@@ -96,6 +96,9 @@ class cdict_base():
     def __len__(self) -> int:
         return len(list(iter(self)))
 
+    def __pos__(self) -> cdict_base:
+        return self
+
 
 def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
     res: AnyDict = {}
