@@ -1,7 +1,7 @@
 from builtins import sum as builtin_sum
 from typing import Any, Iterable
 from .core import cdict_base, cdict_dict, cdict_iter
-from .utils import overridable, override, combinable, combiner
+from .utils import overridable, override, combinable, combiner, lazy
 
 class C():
     @staticmethod

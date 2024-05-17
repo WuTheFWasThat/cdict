@@ -41,3 +41,11 @@ class combinable():
 
 def combiner(f: Callable[[Any, Any], Any], multi: bool = True) -> Callable[[Any], combinable]:
     return lambda x: combinable(x, f, multi)
+
+
+class lazy():
+    def __init__(self, f: Callable[[], Any]):
+        self.f = f
+
+    def cdict_item(self) -> Any:
+        return self.f()

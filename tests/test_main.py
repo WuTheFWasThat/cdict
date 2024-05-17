@@ -503,6 +503,20 @@ def test_combiners():
 
 
 
+def test_lazy():
+    called = False
+    def f():
+        nonlocal called
+        called = True
+        return 5
+
+    x = C.dict(a=C.lazy(f))
+    assert not called
+    z = x * C.dict(b=3)
+    assert not called
+    assert_dicts(z, [dict(a=5, b=3)])
+    assert called
+
 
 def test_readme_code():
     readme_file = os.path.join(os.path.dirname(__file__), '..', 'README.md')
@@ -539,6 +553,8 @@ def test_types():
         raise AssertionError("MyPy found type errors")
 
 
+
+
 if __name__ == "__main__":
     test_multilist()
     test_simple()
@@ -555,5 +571,6 @@ if __name__ == "__main__":
     test_semiring_properties()
     test_or_distribution_property()
     test_combiners()
+    test_lazy()
     test_readme_code()
     test_types()
