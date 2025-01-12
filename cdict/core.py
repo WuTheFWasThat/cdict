@@ -78,6 +78,13 @@ class cdict_base():
     def __add__(self, other: cdict_base) -> cdict_base:
         return cdict_iter([self, other])
 
+    def __sub__(self, other: cdict_base) -> cdict_base:
+        def hashify(x: dict) -> tuple:
+            return tuple(sorted(x.items()))
+
+        other_set = set((hashify(x) for x in other))
+        return self.filter(lambda x: hashify(x) not in other_set)
+
     def __mul__(self, other: cdict_base) -> cdict_base:
         if not isinstance(other, cdict_base):
             return NotImplemented
