@@ -118,7 +118,8 @@ def _combine_dicts(ds: Iterable[AnyDict]) -> AnyDict:
 
 def _iter_values(d: Any) -> Generator[Any, None, None]:
     if hasattr(d, "cdict_iter"):
-        yield from d.cdict_iter()
+        for x in d.cdict_iter():
+            yield from _iter_values(x)
     else:
         yield d
 
@@ -129,6 +130,7 @@ class cdict_iter(cdict_base):
 
     def cdict_iter(self) -> Generator[_cdict_value, None, None]:
         for d in iter(self._items):
+            print('d', d)
             yield from _iter_values(d)
 
     def __repr__(self) -> str:

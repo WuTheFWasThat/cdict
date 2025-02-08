@@ -14,7 +14,7 @@ class C():
 
     @staticmethod
     def defaultdict(**kwargs: Any) -> cdict_base:
-        return cdict_dict({k: overridable(v) for k, v in kwargs.items()})
+        return cdict_dict({k: v if isinstance(v, cdict_base) else overridable(v) for k, v in kwargs.items()})
 
     @staticmethod
     def iter(it: Any) -> cdict_base:

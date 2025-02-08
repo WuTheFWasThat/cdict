@@ -185,6 +185,16 @@ def test_defaultdict():
     c3 = c1 * C.dict(a=C.dict(b=2))
     assert_dicts(c3, [dict(a=dict(a=2, b=2))])
 
+    # defaultdict combining
+    s = C.defaultdict(
+        config=C.defaultdict(a=1)
+    ) * C.dict(
+        config=C.dict(b=2)
+    )
+
+    assert_dicts(s, [dict(config=dict(a=1, b=2))])
+
+
 def test_override():
     with pytest.raises(ValueError):
         list(C.dict(a=3) * C.dict(a=2))
